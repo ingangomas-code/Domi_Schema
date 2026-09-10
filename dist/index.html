@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#267454">
+  <meta name="description" content="Crea, edita y conecta esquemas de bases de datos y workflows en un lienzo interactivo.">
+  <title>Schema Studio · Editor de mapas</title>
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body data-accent="forest">
+  <header class="app-header">
+    <div class="brand"><div class="brand-icon" aria-hidden="true"><svg viewBox="0 0 32 32"><rect x="3" y="4" width="10" height="8" rx="2"/><rect x="19" y="20" width="10" height="8" rx="2"/><path d="M8 12v12h11M13 8h11v12"/></svg></div><div><span class="eyebrow">SCHEMA STUDIO</span><h1 data-t="appTitle">Mapa de esquema interactivo</h1></div></div>
+    <div id="save-state" class="save-state" role="status"></div>
+    <div class="header-actions"><button id="tour-button" class="quiet" data-t="guide">Guía interactiva</button><div class="popover-wrap"><button id="accent-button" class="icon-button" aria-label="Color de acento" title="Color de acento">◐</button><div id="accent-menu" class="popover" hidden></div></div><button id="language-button" class="icon-button" aria-label="Cambiar idioma">ES</button><span class="separator"></span><button id="import-button" class="quiet" data-t="import">Importar</button><button id="export-button" class="outline" data-t="export">Exportar JSON</button></div>
+  </header>
+  <main class="app-layout">
+    <aside id="module-panel" class="module-panel">
+      <div class="panel-heading"><div><span class="eyebrow" data-t="workspace">ESPACIO DE TRABAJO</span><h2 data-t="modules">Módulos</h2></div><button id="add-module" class="icon-button" aria-label="Crear módulo" title="Crear módulo">+</button></div>
+      <div class="preset-tabs"><button data-preset="all" class="active" data-t="all">Todos</button><button data-preset="core">Core</button><button data-preset="none" data-t="none">Ninguno</button></div>
+      <div id="module-list" class="module-list"></div>
+      <div class="sidebar-bottom"><div class="legend"><span class="eyebrow" data-t="legend">LEYENDA DE CAMPOS</span><p><i class="dot observed"></i><span data-t="observed">Observado en fuente</span></p><p><i class="dot required"></i><span data-t="required">Requerido / propuesto</span></p><p><i class="dot extension"></i><span data-t="extension">Extensión opcional</span></p></div><button id="new-map" class="outline full" data-t="newMap">＋ Mapa en blanco</button><button id="load-example" class="quiet full" data-t="example">Cargar ejemplo ERP</button><p class="local-note" data-t="localNote">Tus cambios se guardan en este navegador.</p></div>
+    </aside>
+    <section class="workspace">
+      <div class="workspace-heading"><div><div class="breadcrumb" data-t="breadcrumb">MIS MAPAS / EDITOR</div><input id="map-title" aria-label="Nombre del mapa" maxlength="100" value="Constructora ERP"></div><button id="add-node" class="primary"><span class="plus">+</span><span data-t="newNode">Nuevo nodo</span><kbd>N</kbd></button></div>
+      <div class="toolbar"><div class="toolbar-left"><button id="toggle-modules" class="icon-button" title="Módulos" aria-label="Mostrar módulos">☰</button><div class="segmented"><button data-mode="overview" data-t="overview">Resumen</button><button data-mode="entities" class="active" data-t="entities">Entidades</button></div><div class="search-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6.5"/><path d="m15 15 5 5"/></svg><input id="schema-search" type="search" placeholder="Buscar entidad o campo…" aria-label="Buscar entidad o campo"><kbd>/</kbd></div></div><div class="toolbar-right"><label class="toggle"><input id="columns-toggle" type="checkbox" checked><span data-t="fields">Campos</span></label><label class="toggle"><input id="edges-toggle" type="checkbox" checked><span data-t="relationships">Relaciones</span></label><span class="separator"></span><button id="undo" class="icon-button" title="Deshacer (Ctrl+Z)" aria-label="Deshacer">↶</button><button id="redo" class="icon-button" title="Rehacer (Ctrl+Shift+Z)" aria-label="Rehacer">↷</button><button id="toggle-inspector" class="icon-button" title="Detalles" aria-label="Mostrar detalles">⊞</button></div></div>
+      <div id="summary-strip" class="summary-strip"></div>
+      <div id="canvas-container" class="canvas-container" tabindex="0" aria-label="Lienzo del mapa. Doble clic para crear un nodo.">
+        <div id="world" class="world"><svg id="connections" class="connections" aria-label="Relaciones del mapa"><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="context-stroke" stroke-width="1.5"/></marker></defs><g id="edge-layer"></g><path id="draft-edge" class="draft-edge" hidden/></svg><div id="nodes"></div></div>
+        <div id="empty-state" class="empty-state" hidden><div class="empty-icon">＋</div><h2 data-t="emptyTitle">Todo empieza con un nodo</h2><p data-t="emptyBody">Crea tu primera entidad o paso del workflow.</p><button id="empty-add" class="primary" data-t="newNode">Nuevo nodo</button></div>
+        <div class="canvas-bottom"><div class="canvas-hint" id="canvas-hint"></div><div class="zoom-controls"><button id="zoom-out" aria-label="Alejar">−</button><span id="zoom-level">100%</span><button id="zoom-in" aria-label="Acercar">+</button><span class="separator"></span><button id="fit-view" data-t="fit">Ajustar</button></div></div>
+        <div id="tour-card" class="tour-card" hidden><div class="tour-top"><span id="tour-step" class="eyebrow"></span><button id="close-tour" class="icon-button" aria-label="Cerrar guía">×</button></div><div class="tour-progress"><i id="tour-progress"></i></div><h3 id="tour-title"></h3><p id="tour-body"></p><div class="tour-actions"><button id="tour-previous" class="quiet" data-t="previous">Anterior</button><button id="tour-next" class="primary" data-t="next">Siguiente</button></div></div>
+      </div>
+      <footer class="workspace-footer"><span><span class="live-dot"></span><span data-t="editMode">Modo edición</span></span><span id="footer-count"></span><span data-t="footerHint">Doble clic para crear · Arrastra un punto para conectar</span></footer>
+    </section>
+    <aside id="inspector" class="inspector"><div class="panel-heading"><div><span class="eyebrow" data-t="properties">PROPIEDADES</span><h2 data-t="details">Detalles</h2></div><button id="close-inspector" class="icon-button" aria-label="Cerrar detalles">×</button></div><div id="inspector-content" class="inspector-content"></div></aside>
+  </main>
+  <input type="file" id="import-file" accept=".json,application/json" hidden>
+  <dialog id="app-dialog"><form id="dialog-form"><div class="dialog-heading"><h2 id="dialog-title"></h2><button type="button" id="dialog-close" class="icon-button" aria-label="Cerrar">×</button></div><div id="dialog-body"></div><div class="dialog-actions"><button type="button" id="dialog-cancel" class="outline" data-t="cancel">Cancelar</button><button id="dialog-submit" class="primary" type="submit" data-t="save">Guardar</button></div></form></dialog>
+  <div id="toast" class="toast" role="status" hidden></div>
+  <script src="./model.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
