@@ -37,9 +37,19 @@ test('reject malformed or dangerous import data without mutating the current map
  assert.equal(M.example.entities[0].x,80);
 });
 test('legacy HTML schema data imports without IDs or connection ports',()=>{
- const legacy=M.clone(M.example);delete legacy.version;delete legacy.title;
+ const legacy=M.clone(M.example);delete legacy.version;delete legacy.title;delete legacy.groups;
  legacy.relationships.forEach(r=>{delete r.id;delete r.fromPort;delete r.toPort;delete r.kind;});
- const map=M.validate(legacy);assert.equal(map.title,'Mi mapa');assert.ok(map.relationships.every(r=>r.id&&r.fromPort==='right'));
+ const map=M.validate(legacy);assert.equal(map.title,'Mi mapa');assert.deepEqual(map.groups,[]);assert.ok(map.relationships.every(r=>r.id&&r.fromPort==='right'));
+});
+test('boxes preserve membership and deleting a box keeps its nodes and connections',()=>{
+ const map=M.clone(M.example),group={id:'operations',name:'Operaciones',color:'#267454',x:30,y:20,w:800,h:700};
+ map.groups.push(group);map.entities[0].groupId=group.id;map.entities[1].groupId=group.id;
+ const valid=M.validate(map);assert.equal(valid.entities.filter(n=>n.groupId===group.id).length,2);
+ M.removeGroup(valid,group.id);assert.equal(valid.groups.length,0);assert.ok(valid.entities.every(n=>n.groupId===null));assert.equal(valid.relationships.length,3);
+});
+test('rejects invalid boxes and references to missing boxes',()=>{
+ const missing=M.clone(M.example);missing.entities[0].groupId='missing';assert.throws(()=>M.validate(missing),/invalidMap/);
+ const tooSmall=M.clone(M.example);tooSmall.groups=[{id:'g',name:'G',color:'#267454',x:0,y:0,w:299,h:180}];assert.throws(()=>M.validate(tooSmall),/invalidMap/);
 });
 test('blank maps are valid and every local entrypoint asset exists',()=>{
  assert.doesNotThrow(()=>M.validate({modules:[],entities:[],relationships:[]}));

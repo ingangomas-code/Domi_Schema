@@ -7,7 +7,9 @@ Editor visual basado en el HTML de Constructora ERP proporcionado. Conserva los 
 Abre `dist/index.html` directamente en un navegador o ejecuta `node serve.cjs` y visita `http://127.0.0.1:4173`.
 
 - **Nuevo nodo** o **N**: crea una entidad o un paso de workflow. También puedes hacer doble clic en el lienzo.
+- **Nuevo box** o **G**: crea una caja y permite seleccionar varios nodos para agruparlos desde el primer momento.
 - Arrastra una tarjeta para moverla. Selecciona un nodo para editar su nombre, etiqueta, módulo, descripción y campos en Detalles.
+- Arrastra la cabecera de un box para mover juntos todos sus nodos. Arrastra un nodo hacia dentro o fuera para añadirlo o sacarlo del box; las relaciones del nodo se conservan. La esquina inferior derecha permite redimensionar la caja.
 - Arrastra cualquiera de los cuatro puntos de conexión hasta otro punto. También puedes hacer clic en el primer punto y después en el segundo; funciona con teclado usando Tab y Enter.
 - Selecciona una línea para editar su etiqueta o cardinalidad, o eliminarla.
 - Arrastra el fondo para desplazar el mapa. La rueda controla el zoom y **Ajustar** encuadra los nodos visibles.
@@ -20,7 +22,7 @@ Atajos: Ctrl/Cmd+Z deshace, Ctrl/Cmd+Shift+Z rehace, Ctrl/Cmd+D duplica, Supr el
 
 Los mapas se guardan automáticamente **en el navegador y dispositivo actuales**, no en una cuenta ni en un servidor. Abrir la app en otra dirección, perfil o dispositivo usa un almacenamiento distinto. Exporta una copia JSON para trasladar o respaldar tu trabajo. Si el navegador impide guardar o se llena el almacenamiento, la app muestra un aviso. El historial de deshacer corresponde a la sesión actual.
 
-Límites de importación: 5 MB, 1.000 nodos, 100 módulos, 100 campos por nodo y 5.000 relaciones. Es posible importar la estructura `schemaData` del HTML original como JSON.
+Límites de importación: 5 MB, 1.000 nodos, 200 boxes, 100 módulos, 100 campos por nodo y 5.000 relaciones. Es posible importar la estructura `schemaData` del HTML original como JSON.
 
 ## Desarrollo y validación
 
