@@ -1,4 +1,4 @@
-# Schema Studio
+# Domi Schema Studio
 
 Editor visual basado en el HTML de Constructora ERP proporcionado. Conserva los módulos, campos PK/FK, clasificación de campos, vista de resumen y entidades, filtros, búsqueda, inspector, guía, colores y cambio de idioma. Cada mapa se administra como un proyecto local independiente.
 
