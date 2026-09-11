@@ -14,7 +14,7 @@
   <header class="app-header">
     <div class="brand"><div class="brand-icon" aria-hidden="true"><svg viewBox="0 0 32 32"><rect x="3" y="4" width="10" height="8" rx="2"/><rect x="19" y="20" width="10" height="8" rx="2"/><path d="M8 12v12h11M13 8h11v12"/></svg></div><div><span class="eyebrow">DOMI SCHEMA STUDIO</span><h1 data-t="appTitle">Mapa de esquema interactivo</h1></div></div>
     <div id="save-state" class="save-state" role="status"></div>
-    <div class="header-actions"><button id="tour-button" class="quiet" data-t="guide">Guía interactiva</button><div class="popover-wrap"><button id="accent-button" class="icon-button" aria-label="Color de acento" title="Color de acento">◐</button><div id="accent-menu" class="popover" hidden></div></div><button id="language-button" class="icon-button" aria-label="Cambiar idioma">ES</button><span class="separator"></span><button id="import-button" class="quiet" data-t="import">Importar</button><button id="export-button" class="outline" data-t="export">Exportar JSON</button></div>
+    <div class="header-actions"><button id="cloud-button" class="outline cloud-button" type="button"><span class="cloud-dot"></span><span id="cloud-button-label">Nube</span></button><button id="tour-button" class="quiet" data-t="guide">Guía interactiva</button><div class="popover-wrap"><button id="accent-button" class="icon-button" aria-label="Color de acento" title="Color de acento">◐</button><div id="accent-menu" class="popover" hidden></div></div><button id="language-button" class="icon-button" aria-label="Cambiar idioma">ES</button><span class="separator"></span><button id="import-button" class="quiet" data-t="import">Importar</button><button id="export-button" class="outline" data-t="export">Exportar JSON</button></div>
   </header>
   <main class="app-layout">
     <aside id="module-panel" class="module-panel">
@@ -40,8 +40,12 @@
   </main>
   <input type="file" id="import-file" accept=".json,application/json" hidden>
   <dialog id="app-dialog"><form id="dialog-form"><div class="dialog-heading"><h2 id="dialog-title"></h2><button type="button" id="dialog-close" class="icon-button" aria-label="Cerrar">×</button></div><div id="dialog-body"></div><div class="dialog-actions"><button type="button" id="dialog-cancel" class="outline" data-t="cancel">Cancelar</button><button id="dialog-submit" class="primary" type="submit" data-t="save">Guardar</button></div></form></dialog>
+  <dialog id="cloud-dialog"><form id="cloud-form"><div class="dialog-heading"><div><span class="eyebrow">SUPABASE</span><h2>Proyectos en la nube</h2></div><button type="button" id="cloud-close" class="icon-button" aria-label="Cerrar">×</button></div><div id="cloud-signed-out"><p class="cloud-copy">Inicia sesión para guardar y abrir tus proyectos desde otros dispositivos.</p><label class="property"><span>Correo electrónico</span><input id="cloud-email" type="email" autocomplete="email" required></label><label class="property"><span>Contraseña</span><input id="cloud-password" type="password" autocomplete="current-password" minlength="6" required></label><div class="dialog-actions cloud-auth-actions"><button type="button" id="cloud-signup" class="outline">Crear cuenta</button><button id="cloud-signin" class="primary" type="submit">Iniciar sesión</button></div></div><div id="cloud-signed-in" hidden><div class="cloud-account"><span class="cloud-status-icon">✓</span><div><strong id="cloud-user"></strong><small>Conectado a Domi Schema Studio</small></div></div><p class="cloud-copy">Los cambios se sincronizan automáticamente. También puedes solicitar una actualización manual.</p><div class="dialog-actions"><button type="button" id="cloud-signout" class="outline danger">Cerrar sesión</button><button type="button" id="cloud-sync" class="primary">Sincronizar ahora</button></div></div><p id="cloud-message" class="cloud-message" role="status"></p></form></dialog>
   <div id="toast" class="toast" role="status" hidden></div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
+  <script src="./supabase-config.js"></script>
   <script src="./model.js"></script>
   <script src="./app.js"></script>
+  <script src="./cloud.js"></script>
 </body>
 </html>

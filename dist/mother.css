@@ -28,3 +28,15 @@
 .group-members .checkbox-row{padding:7px 8px;margin:0;border-radius:5px}
 .group-members .checkbox-row:hover{background:#f5f7f8}
 @media(max-width:760px){.heading-actions{gap:4px}.heading-actions button{padding:8px}.heading-actions button span[data-t]{display:none}.heading-actions kbd{display:none}.project-switcher{padding:14px 12px}}
+.cloud-button{gap:7px;max-width:190px;overflow:hidden}
+.cloud-button span:last-child{overflow:hidden;text-overflow:ellipsis}
+.cloud-dot{width:7px;height:7px;border-radius:50%;background:#a7b0b6;flex:0 0 auto}
+body[data-cloud="online"] .cloud-dot{background:#35ad79;box-shadow:0 0 0 3px #35ad7920}
+.cloud-copy{font-size:13px;line-height:1.65;color:var(--muted);margin-bottom:20px}
+.cloud-auth-actions{margin-top:8px}
+.cloud-account{display:flex;align-items:center;gap:12px;padding:13px;border:1px solid #dce9e2;background:#f4faf6;border-radius:9px;margin-bottom:16px}
+.cloud-account strong,.cloud-account small{display:block}.cloud-account small{color:var(--muted);margin-top:4px}
+.cloud-status-icon{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--primary);color:#fff;font-weight:700}
+.cloud-message{min-height:20px;margin-top:15px;font-size:12px;line-height:1.5;color:var(--primary)}
+.cloud-message.error{color:#b14f43}
+@media(max-width:760px){.header-actions #cloud-button{font-size:0;width:34px;padding:0}.header-actions #cloud-button .cloud-dot{width:8px;height:8px}}
