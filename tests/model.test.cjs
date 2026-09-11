@@ -41,13 +41,25 @@ test('legacy HTML schema data imports without IDs or connection ports',()=>{
  legacy.relationships.forEach(r=>{delete r.id;delete r.fromPort;delete r.toPort;delete r.kind;});
  const map=M.validate(legacy);assert.equal(map.title,'Mi mapa');assert.deepEqual(map.groups,[]);assert.ok(map.relationships.every(r=>r.id&&r.fromPort==='right'));
 });
-test('boxes preserve membership and deleting a box keeps its nodes and connections',()=>{
+test('mother nodes preserve subnode membership and deleting one keeps subnodes and their own connections',()=>{
  const map=M.clone(M.example),group={id:'operations',name:'Operaciones',color:'#267454',x:30,y:20,w:800,h:700};
  map.groups.push(group);map.entities[0].groupId=group.id;map.entities[1].groupId=group.id;
  const valid=M.validate(map);assert.equal(valid.entities.filter(n=>n.groupId===group.id).length,2);
  M.removeGroup(valid,group.id);assert.equal(valid.groups.length,0);assert.ok(valid.entities.every(n=>n.groupId===null));assert.equal(valid.relationships.length,3);
 });
-test('rejects invalid boxes and references to missing boxes',()=>{
+test('mother nodes connect as first-class endpoints and remove only their direct relationships',()=>{
+ const map=M.clone(M.example),mother={id:'operations',name:'Operaciones',color:'#267454',x:30,y:20,w:800,h:700};
+ map.groups.push(mother);map.entities[0].groupId=mother.id;
+ M.connect(map,mother.id,'right','invoice','left');
+ M.connect(map,'contractor','bottom',mother.id,'top');
+ assert.equal(map.relationships.filter(r=>r.from===mother.id||r.to===mother.id).length,2);
+ assert.doesNotThrow(()=>M.validate(map));
+ M.removeGroup(map,mother.id);
+ assert.equal(map.entities.find(n=>n.id==='project').groupId,null);
+ assert.equal(map.relationships.length,3);
+ assert.doesNotThrow(()=>M.validate(map));
+});
+test('rejects invalid mother nodes and references to missing mother nodes',()=>{
  const missing=M.clone(M.example);missing.entities[0].groupId='missing';assert.throws(()=>M.validate(missing),/invalidMap/);
  const tooSmall=M.clone(M.example);tooSmall.groups=[{id:'g',name:'G',color:'#267454',x:0,y:0,w:299,h:180}];assert.throws(()=>M.validate(tooSmall),/invalidMap/);
 });

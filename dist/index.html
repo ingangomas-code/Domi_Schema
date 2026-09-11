@@ -8,6 +8,7 @@
   <title>Schema Studio · Editor de mapas</title>
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./mother.css">
 </head>
 <body data-accent="forest">
   <header class="app-header">
@@ -17,10 +18,11 @@
   </header>
   <main class="app-layout">
     <aside id="module-panel" class="module-panel">
+      <div class="project-switcher"><span class="eyebrow" data-t="projects">PROYECTOS</span><div class="project-row"><select id="project-select" aria-label="Proyecto actual"></select><button id="new-project" class="icon-button" aria-label="Nuevo proyecto" title="Nuevo proyecto">+</button><button id="delete-project" class="icon-button danger" aria-label="Eliminar proyecto" title="Eliminar proyecto">×</button></div></div>
       <div class="panel-heading"><div><span class="eyebrow" data-t="workspace">ESPACIO DE TRABAJO</span><h2 data-t="modules">Módulos</h2></div><button id="add-module" class="icon-button" aria-label="Crear módulo" title="Crear módulo">+</button></div>
       <div class="preset-tabs"><button data-preset="all" class="active" data-t="all">Todos</button><button data-preset="core">Core</button><button data-preset="none" data-t="none">Ninguno</button></div>
       <div id="module-list" class="module-list"></div>
-      <div class="sidebar-bottom"><div class="legend"><span class="eyebrow" data-t="legend">LEYENDA DE CAMPOS</span><p><i class="dot observed"></i><span data-t="observed">Observado en fuente</span></p><p><i class="dot required"></i><span data-t="required">Requerido / propuesto</span></p><p><i class="dot extension"></i><span data-t="extension">Extensión opcional</span></p></div><button id="new-map" class="outline full" data-t="newMap">＋ Mapa en blanco</button><button id="load-example" class="quiet full" data-t="example">Cargar ejemplo ERP</button><p class="local-note" data-t="localNote">Tus cambios se guardan en este navegador.</p></div>
+      <div class="sidebar-bottom"><div class="legend"><span class="eyebrow" data-t="legend">LEYENDA DE CAMPOS</span><p><i class="dot observed"></i><span data-t="observed">Observado en fuente</span></p><p><i class="dot required"></i><span data-t="required">Requerido / propuesto</span></p><p><i class="dot extension"></i><span data-t="extension">Extensión opcional</span></p></div><button id="new-map" class="outline full" data-t="newProject">＋ Nuevo proyecto</button><button id="load-example" class="quiet full" data-t="example">Cargar ejemplo ERP</button><p class="local-note" data-t="localNote">Tus proyectos se guardan en este navegador.</p></div>
     </aside>
     <section class="workspace">
       <div class="workspace-heading"><div><div class="breadcrumb" data-t="breadcrumb">MIS MAPAS / EDITOR</div><input id="map-title" aria-label="Nombre del mapa" maxlength="100" value="Constructora ERP"></div><div class="heading-actions"><button id="add-group" class="outline"><span class="box-symbol">□</span><span data-t="newGroup">Nuevo box</span><kbd>G</kbd></button><button id="add-node" class="primary"><span class="plus">+</span><span data-t="newNode">Nuevo nodo</span><kbd>N</kbd></button></div></div>

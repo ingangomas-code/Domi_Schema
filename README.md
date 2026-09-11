@@ -1,13 +1,16 @@
 # Schema Studio
 
-Editor visual basado en el HTML de Constructora ERP proporcionado. Conserva los módulos, campos PK/FK, clasificación de campos, vista de resumen y entidades, filtros, búsqueda, inspector, guía, colores y cambio de idioma.
+Editor visual basado en el HTML de Constructora ERP proporcionado. Conserva los módulos, campos PK/FK, clasificación de campos, vista de resumen y entidades, filtros, búsqueda, inspector, guía, colores y cambio de idioma. Cada mapa se administra como un proyecto local independiente.
 
 ## Uso
 
 Abre `dist/index.html` directamente en un navegador o ejecuta `node serve.cjs` y visita `http://127.0.0.1:4173`.
 
 - **Nuevo nodo** o **N**: crea una entidad o un paso de workflow. También puedes hacer doble clic en el lienzo.
-- **Nuevo box** o **G**: crea una caja y permite seleccionar varios nodos para agruparlos desde el primer momento.
+- **Nuevo nodo madre** o **G**: crea un nodo grande y opaco que contiene subnodos. Puedes crearlos desde su cabecera, arrastrar nodos hacia dentro o sacarlos de nuevo.
+- El nodo madre se mueve junto con sus subnodos, se puede redimensionar y tiene puntos propios para conectarlo con otros nodos o nodos madre.
+- **Nuevo proyecto**: crea un trabajo independiente. El selector lateral permite cambiar entre proyectos guardados en el navegador.
+- Importar un JSON o cargar el ejemplo ERP crea otro proyecto y conserva los actuales.
 - Arrastra una tarjeta para moverla. Selecciona un nodo para editar su nombre, etiqueta, módulo, descripción y campos en Detalles.
 - Arrastra la cabecera de un box para mover juntos todos sus nodos. Arrastra un nodo hacia dentro o fuera para añadirlo o sacarlo del box; las relaciones del nodo se conservan. La esquina inferior derecha permite redimensionar la caja.
 - Arrastra cualquiera de los cuatro puntos de conexión hasta otro punto. También puedes hacer clic en el primer punto y después en el segundo; funciona con teclado usando Tab y Enter.
@@ -32,4 +35,6 @@ Ejecuta `node --test tests/model.test.cjs` y `node --check dist/app.js`.
 
 Las pruebas verifican importación/exportación, validación del esquema, conexión entre puertos, duplicación independiente, eliminación de relaciones asociadas y archivos de entrada. No se realizó una prueba visual o de interacción en navegador.
 
-La integración WebMCP opcional se registra únicamente si `document.modelContext` está disponible. Expone lectura del mapa, creación de nodos y conexiones por lotes mediante el mismo estado e historial de la interfaz. No se verificó en un contexto WebMCP compatible durante esta entrega.
+La integración WebMCP opcional se registra únicamente si `document.modelContext` está disponible. Expone lectura del mapa, creación de nodos y conexiones por lotes mediante el mismo estado e historial de la interfaz.
+
+Supabase, Vercel y el repositorio remoto quedan para la siguiente fase. Esta versión guarda proyectos únicamente en `localStorage` y funciona en `http://127.0.0.1:4173`.

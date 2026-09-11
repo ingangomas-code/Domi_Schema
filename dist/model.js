@@ -50,7 +50,8 @@
     });
     unique(entities.map(n=>n.id));
     const relationships = input.relationships.map(r=>{
-      if(!r || !entities.some(n=>n.id===r.from) || !entities.some(n=>n.id===r.to)) fail();
+      const endpoints=new Set([...entities.map(n=>n.id),...groups.map(g=>g.id)]);
+      if(!r || !endpoints.has(r.from) || !endpoints.has(r.to)) fail();
       if((r.fromPort!==undefined&&!sides.includes(r.fromPort)) || (r.toPort!==undefined&&!sides.includes(r.toPort))) fail();
       return{id:r.id===undefined?uid():id(r.id),from:r.from,to:r.to,fromPort:r.fromPort||'right',toPort:r.toPort||'left',label:str(r.label,160),kind:str(r.kind,30,'1:N')};
     });
@@ -58,14 +59,15 @@
     return{version:1,title:str(input.title,100,'Mi mapa')||'Mi mapa',groups,modules,entities,relationships};
   }
   function connect(map, from, fromPort, to, toPort) {
-    if(!sides.includes(fromPort)||!sides.includes(toPort)||!map.entities.some(n=>n.id===from)||!map.entities.some(n=>n.id===to)) throw new Error('invalidConnection');
+    const endpoints=new Set([...map.entities.map(n=>n.id),...(map.groups||[]).map(g=>g.id)]);
+    if(!sides.includes(fromPort)||!sides.includes(toPort)||!endpoints.has(from)||!endpoints.has(to)) throw new Error('invalidConnection');
     if(from===to&&fromPort===toPort) throw new Error('samePort');
     if(map.relationships.some(r=>r.from===from&&r.to===to&&r.fromPort===fromPort&&r.toPort===toPort)) throw new Error('duplicateConnection');
     const edge={id:uid(),from,to,fromPort,toPort,label:'',kind:'→'};
     map.relationships.push(edge);return edge;
   }
   function removeNode(map,id){map.entities=map.entities.filter(n=>n.id!==id);map.relationships=map.relationships.filter(r=>r.from!==id&&r.to!==id);}
-  function removeGroup(map,id){map.groups=map.groups.filter(g=>g.id!==id);map.entities.forEach(n=>{if(n.groupId===id)n.groupId=null;});}
+  function removeGroup(map,id){map.groups=map.groups.filter(g=>g.id!==id);map.entities.forEach(n=>{if(n.groupId===id)n.groupId=null;});map.relationships=map.relationships.filter(r=>r.from!==id&&r.to!==id);}
   function duplicateNode(map,id){const original=map.entities.find(n=>n.id===id);if(!original)return null;const node={...clone(original),id:uid(),x:Math.min(100000,original.x+40),y:Math.min(100000,original.y+40),name:original.name.slice(0,96)+' (2)'};map.entities.push(node);return node;}
   root.SchemaModel={uid,clone,example,validate,connect,removeNode,removeGroup,duplicateNode,sides};
   if(typeof module!=='undefined')module.exports=root.SchemaModel;
