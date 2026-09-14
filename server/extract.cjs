@@ -30,7 +30,11 @@ async function extractFile(name,buffer){
   if(buffer.length>MAX_FILE)throw new Error('Máximo 2,5 MB por archivo.');
   const id=createHash('sha256').update(name).update(buffer).digest('hex'),ext=path.extname(name).toLowerCase();
   const source={id,name,bytes:buffer.length,type:ext.slice(1),sections:[],warnings:[],profile:null};
-  if(ext==='.pdf'){
+  if(ext==='.xls'||ext==='.xlsx'){
+    if(buffer[0]===0x50&&buffer[1]===0x4b)archive(buffer,()=>false);
+    const parsed=require('./spreadsheet.cjs').extractSpreadsheet(buffer);
+    source.sections=parsed.sections;source.profile=parsed.profile;source.warnings=parsed.warnings;
+  }else if(ext==='.pdf'){
     const {PDFParse}=require('pdf-parse'),parser=new PDFParse({data:new Uint8Array(buffer)});
     try{const info=await parser.getInfo();if(info.total>60)throw new Error('Máximo 60 páginas por PDF.');const result=await parser.getText();source.sections=result.pages.map(p=>({locator:'página '+p.num,text:p.text}));if(!source.sections.some(p=>p.text.trim().length>15))throw new Error('PDF escaneado sin texto: exporta sus páginas como imágenes para OCR.');source.warnings.push('Se extrae texto; las flechas y posiciones visuales del PDF requieren revisión.');}finally{await parser.destroy();}
   }else if(ext==='.docx'){
@@ -47,14 +51,14 @@ async function extractFile(name,buffer){
     if(/\.(js|jsx|ts|tsx|mjs|cjs)$/.test(name)){
       try{const parser=await import('@babel/parser');const ast=parser.parse(text,{sourceType:'unambiguous',plugins:[...(ext.includes('ts')?['typescript']:[]),'jsx']});const symbols=[];const seen=new Set();function visit(n){if(!n||typeof n!=='object'||seen.has(n))return;seen.add(n);if(['ClassDeclaration','FunctionDeclaration','ImportDeclaration','TSInterfaceDeclaration','TSTypeAliasDeclaration'].includes(n.type))symbols.push({kind:n.type,name:n.id?.name||n.source?.value||'(anónimo)',line:n.loc?.start.line});for(const [k,v] of Object.entries(n)){if(k==='loc')continue;if(Array.isArray(v))v.forEach(visit);else if(v&&typeof v==='object')visit(v);}}visit(ast);source.symbols=symbols;}catch{source.warnings.push('No se pudo analizar el AST; se conserva el código como texto.');}
     }else if(/\.(py|java|go|rs|php|rb|sql)$/.test(name))source.warnings.push('Análisis textual de código; AST disponible actualmente para JavaScript/TypeScript.');
-  }else throw new Error('Formato no admitido. Usa TXT, MD, CSV, código, PDF, DOCX o PNG/JPG/WebP; exporta .doc a .docx.');
+  }else throw new Error('Formato no admitido. Usa XLS, XLSX, CSV, TXT, MD, código, PDF, DOCX o PNG/JPG/WebP; exporta .doc a .docx. Para videos, carga su transcripción.');
   const length=source.sections.reduce((n,s)=>n+s.text.length,0);if(length>MAX_TEXT)throw new Error('El texto extraído supera 300.000 caracteres. Divide el documento.');if(!length)throw new Error('No se encontró texto utilizable.');return source;
 }
 async function extractUpload(name,buffer){
   if(buffer.length>MAX_FILE)throw new Error('Máximo 2,5 MB por carga.');
   if(!/\.zip$/i.test(name))return {sources:[await extractFile(name,buffer)],skipped:[]};
   const skipped=[];let accepted=0;
-  const entries=archive(buffer,f=>{if(f.name.endsWith('/'))return false;const allow=!ignored(f.name)&&TEXT.test(f.name)&&f.originalSize<=MAX_FILE;if(!allow)skipped.push({name:f.name,reason:'Formato, carpeta excluida o tamaño no admitido dentro del ZIP.'});else if(++accepted>80)throw new Error('Máximo 80 archivos de texto/código por ZIP.');return allow;});
+  const entries=archive(buffer,f=>{if(f.name.endsWith('/'))return false;const allow=!ignored(f.name)&&(TEXT.test(f.name)||/\.xlsx?$/i.test(f.name))&&f.originalSize<=MAX_FILE;if(!allow)skipped.push({name:f.name,reason:'Formato, carpeta excluida o tamaño no admitido dentro del ZIP.'});else if(++accepted>80)throw new Error('Máximo 80 archivos de texto, código o Excel por ZIP.');return allow;});
   const sources=[];for(const [name,bytes] of Object.entries(entries)){try{sources.push(await extractFile(name,Buffer.from(bytes)));}catch(e){skipped.push({name,reason:e.message});}}
   if(sources.reduce((n,s)=>n+s.sections.reduce((m,p)=>m+p.text.length,0),0)>MAX_TEXT)throw new Error('El ZIP supera 300.000 caracteres extraídos. Divide el repositorio.');
   if(!sources.length)throw new Error('El ZIP no contiene texto o código procesable.');return {sources,skipped};

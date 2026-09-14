@@ -24,7 +24,7 @@ La revisión de esta entrega está en http://127.0.0.1:4174/. El servidor escuch
 1. Extraer texto y conservar archivo, página o líneas. GitHub se resuelve a un SHA inmutable antes de descargar.
 2. Mostrar formatos omitidos, incidencias de extracción y estadísticas de contenido.
 3. Fragmentar en ventanas de hasta 1.800 caracteres con solapamiento de 180.
-4. Calcular TF-IDF y clustering k-means esférico determinista. En CSV/TSV también: filas, duplicados, tipos, no nulos, nulos, valores únicos, media, desviación estándar muestral, mínimo, cuartiles, máximo y atípicos por IQR. Son cálculos de JavaScript, equivalentes funcionales al perfil tabular de pandas; no se ejecuta `df.info()` ni `df.describe()` sobre documentos.
+4. Calcular TF-IDF y clustering k-means esférico determinista. En CSV/TSV y cada hoja de Excel también: filas, duplicados, tipos, no nulos, nulos, valores únicos, media, desviación estándar muestral, mínimo, cuartiles, máximo y atípicos por IQR. Son cálculos de JavaScript, equivalentes funcionales al perfil tabular de pandas; no se ejecuta `df.info()` ni `df.describe()` sobre documentos.
 5. Si se configuró un modelo de embeddings, construir automáticamente el índice semántico y repetir el clustering sobre esos vectores. Su estado es visible. Sin esa configuración solo se completa el análisis léxico; no se simulan embeddings semánticos.
 6. Al generar con fuentes, recalcular embeddings de los fragmentos y del prompt usando el mismo proveedor/modelo; recuperar hasta 18 fragmentos por similitud híbrida (60 % semántica, 40 % léxica).
 7. Enviar únicamente el contexto recuperado al proveedor generativo seleccionado. Las fuentes se delimitan como datos en el prompt; las instrucciones de los documentos no tienen autoridad.
@@ -41,17 +41,18 @@ La existencia de una cita no demuestra que la interpretación sea correcta. No s
 | --- | --- |
 | TXT, MD, código, JSON, XML, Mermaid | Texto UTF-8 con ubicaciones; no se ejecuta código |
 | CSV / TSV | Texto más perfil tabular determinista |
+| XLS / XLSX | SheetJS 0.20.3: todas las hojas y referencias a filas; perfil por hoja, hasta 20 hojas, 10.000 filas y 200 columnas por hoja y 100.000 celdas por libro. Fórmulas sin ejecutar, usando valores guardados cuando existen |
 | JS / TS / JSX / TSX | AST con Babel para clases, funciones, imports e interfaces |
 | Otros lenguajes | Análisis textual; no se afirma tener AST para esos lenguajes |
 | PDF | Texto por página; hasta 60 páginas. Los escaneos sin texto se rechazan con indicación de exportar imágenes para OCR |
 | DOCX | Texto de Word con Mammoth; .doc requiere conversión previa |
 | PNG / JPEG / WebP | OCR español/inglés con Tesseract en un thread descartable, 12 megapíxeles, límite de 40 segundos |
-| ZIP | Solo texto y código; sin ejecutar ni escribir entradas en disco, hasta 16 MB descomprimidos y 2.000 entradas |
+| ZIP | Texto, código y Excel; sin ejecutar ni escribir entradas en disco, hasta 16 MB descomprimidos y 2.000 entradas |
 | GitHub | Repositorios públicos; SHA registrado. Privados, GitLab y Bitbucket no están habilitados |
 
 Máximo 2,5 MB por carga, 80 fuentes, 300.000 caracteres y 250 fragmentos por proyecto. Las entradas no admitidas del ZIP se enumeran. Se excluyen `.env`, claves, dependencias y carpetas de construcción. La exclusión por nombre no es un escáner universal de secretos.
 
-OCR recupera texto, no interpreta de forma fiable flechas ni geometría de diagramas. Análisis visual completo, OCR de PDF automático, repositorios privados, Excel, procesamiento masivo con una cola durable y búsqueda `pgvector` son ampliaciones pendientes. Este incremento usa procesamiento acotado por solicitud, no una cola durable. En Vercel el presupuesto de ejecución es 60 segundos: divide entradas que excedan ese tiempo.
+OCR recupera texto, no interpreta de forma fiable flechas ni geometría de diagramas. Análisis visual completo, OCR de PDF automático, repositorios privados, videos, procesamiento masivo con una cola durable y búsqueda `pgvector` son ampliaciones pendientes. Este incremento usa procesamiento acotado por solicitud, no una cola durable. En Vercel el presupuesto de ejecución es 60 segundos: divide entradas que excedan ese tiempo.
 
 ## Proveedores y claves
 
