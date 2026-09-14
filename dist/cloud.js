@@ -9,6 +9,11 @@
   if(!window.supabase?.createClient||!config?.url||!config?.publishableKey){button.disabled=true;button.title='Supabase no disponible';return;}
   const client=window.supabase.createClient(config.url,config.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
   let session=null,timer=null,syncing=false,ready=false;
+  window.DomiCloud=Object.freeze({
+    getSession:async()=>{const {data,error}=await client.auth.getSession();if(error)throw error;return data.session;},
+    saveAI:async(projectId,state)=>{const {data:{user},error:authError}=await client.auth.getUser();if(authError||!user)throw new Error('Inicia sesión desde Nube.');const {error}=await client.from('ai_workspaces').upsert({owner_id:user.id,project_id:projectId,state,updated_at:new Date().toISOString()},{onConflict:'owner_id,project_id'});if(error)throw error;},
+    loadAI:async projectId=>{const {data,error}=await client.from('ai_workspaces').select('state').eq('project_id',projectId).maybeSingle();if(error)throw error;return data?.state||null;}
+  });
   const readLocal=()=>{try{const value=JSON.parse(localStorage.getItem(STORAGE));return value&&Array.isArray(value.projects)?value:null;}catch{return null;}};
   const setMessage=(text,error=false)=>{message.textContent=text;message.classList.toggle('error',error);};
   function renderSession(){

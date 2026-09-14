@@ -65,7 +65,7 @@ test('rejects invalid mother nodes and references to missing mother nodes',()=>{
 });
 test('blank maps are valid and every local entrypoint asset exists',()=>{
  assert.doesNotThrow(()=>M.validate({modules:[],entities:[],relationships:[]}));
- const root=path.join(__dirname,'../dist'),html=fs.readFileSync(path.join(root,'index.html'),'utf8');
- for(const match of html.matchAll(/(?:src|href)="\.\/([^"]+)"/g))assert.ok(fs.existsSync(path.join(root,match[1])),match[1]);
+ const root=path.join(__dirname,'../dist'),html=fs.readFileSync(path.join(root,'index.html'),'utf8'),share=fs.readFileSync(path.join(root,'share.html'),'utf8');
+ for(const document of [html,share])for(const match of document.matchAll(/(?:src|href)="\.\/([^"]+)"/g))assert.ok(fs.existsSync(path.join(root,match[1])),match[1]);
  const ids=[...html.matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]);assert.equal(new Set(ids).size,ids.length);
 });

@@ -3,3 +3,7 @@ node_modules/
 *.log
 .site-artifacts/
 .vercel/
+.env.*
+!.env.example
+.ai-cache/
+supabase/.temp/

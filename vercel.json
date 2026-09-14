@@ -1,4 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "outputDirectory": "dist"
+  "outputDirectory": "dist",
+  "functions": {"api/ai.js": {"maxDuration": 60, "memory": 2048, "includeFiles": "{server/**,node_modules/tesseract.js/**,node_modules/tesseract.js-core/**}"}}
 }

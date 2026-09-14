@@ -9,16 +9,20 @@
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./styles.css">
   <link rel="stylesheet" href="./mother.css">
+  <link rel="stylesheet" href="./ai-panel.css">
+  <link rel="stylesheet" href="./dashboard.css">
+  <link rel="stylesheet" href="./share.css">
 </head>
 <body data-accent="forest">
   <header class="app-header">
     <div class="brand"><div class="brand-icon" aria-hidden="true"><svg viewBox="0 0 32 32"><rect x="3" y="4" width="10" height="8" rx="2"/><rect x="19" y="20" width="10" height="8" rx="2"/><path d="M8 12v12h11M13 8h11v12"/></svg></div><div><span class="eyebrow">DOMI SCHEMA STUDIO</span><h1 data-t="appTitle">Mapa de esquema interactivo</h1></div></div>
     <div id="save-state" class="save-state" role="status"></div>
-    <div class="header-actions"><button id="cloud-button" class="outline cloud-button" type="button"><span class="cloud-dot"></span><span id="cloud-button-label">Nube</span></button><button id="tour-button" class="quiet" data-t="guide">Guía interactiva</button><div class="popover-wrap"><button id="accent-button" class="icon-button" aria-label="Color de acento" title="Color de acento">◐</button><div id="accent-menu" class="popover" hidden></div></div><button id="language-button" class="icon-button" aria-label="Cambiar idioma">ES</button><span class="separator"></span><button id="import-button" class="quiet" data-t="import">Importar</button><button id="export-button" class="outline" data-t="export">Exportar JSON</button></div>
+    <div class="header-actions"><button id="cloud-button" class="outline cloud-button" type="button"><span class="cloud-dot"></span><span id="cloud-button-label">Nube</span></button><button id="share-button" class="outline" type="button">Compartir</button><button id="tour-button" class="quiet" data-t="guide">Guía interactiva</button><div class="popover-wrap"><button id="accent-button" class="icon-button" aria-label="Color de acento" title="Color de acento">◐</button><div id="accent-menu" class="popover" hidden></div></div><button id="language-button" class="icon-button" aria-label="Cambiar idioma">ES</button><span class="separator"></span><button id="import-button" class="quiet" data-t="import">Importar</button><button id="export-button" class="outline" data-t="export">Exportar JSON</button></div>
   </header>
   <main class="app-layout">
     <aside id="module-panel" class="module-panel">
       <div class="project-switcher"><span class="eyebrow" data-t="projects">PROYECTOS</span><div class="project-row"><select id="project-select" aria-label="Proyecto actual"></select><button id="new-project" class="icon-button" aria-label="Nuevo proyecto" title="Nuevo proyecto">+</button><button id="delete-project" class="icon-button danger" aria-label="Eliminar proyecto" title="Eliminar proyecto">×</button></div></div>
+      <section class="ai-sidebar"><span class="eyebrow">ASISTENTE DE DIAGRAMAS</span><button id="ai-open" type="button"><span class="ai-spark" aria-hidden="true">✧</span><span><strong>IA y fuentes</strong><small>Documentos → borradores editables</small></span><span aria-hidden="true">↗</span></button></section>
       <div class="panel-heading"><div><span class="eyebrow" data-t="workspace">ESPACIO DE TRABAJO</span><h2 data-t="modules">Módulos</h2></div><button id="add-module" class="icon-button" aria-label="Crear módulo" title="Crear módulo">+</button></div>
       <div class="preset-tabs"><button data-preset="all" class="active" data-t="all">Todos</button><button data-preset="core">Core</button><button data-preset="none" data-t="none">Ninguno</button></div>
       <div id="module-list" class="module-list"></div>
@@ -47,5 +51,9 @@
   <script src="./model.js"></script>
   <script src="./app.js"></script>
   <script src="./cloud.js"></script>
+  <script src="./share-client.js"></script>
+  <script src="./ai-core.js"></script>
+  <script src="./vendor/echarts.min.js"></script>
+  <script src="./ai-panel.js"></script>
 </body>
 </html>

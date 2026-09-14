@@ -117,6 +117,14 @@ document.addEventListener('keydown',e=>{if($('app-dialog').open)return;const typ
 new ResizeObserver(()=>updateTransform()).observe(container);
 persist();translate();requestAnimationFrame(fit);
 
+// Narrow bridge: AI drafts enter through the existing validated project importer.
+window.DomiEditor=Object.freeze({
+  projectId:()=>currentProjectId,
+  projectName:()=>map.title,
+  snapshot:()=>copy(map),
+  importDraft:input=>{addProjectFromMap(M.validate(input));return currentProjectId;}
+});
+
 // Optional agent tools use the editor's own state, history, validation and rendering.
 if(document.modelContext?.registerTool){
  const lifecycle=new AbortController();
