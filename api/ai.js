@@ -9,7 +9,7 @@ async function authorize(req){
   if(req.domiLocal===true)return 'local';
   const url=process.env.SUPABASE_URL,key=process.env.SUPABASE_PUBLISHABLE_KEY;
   if(!url||!key)fail('Configura SUPABASE_URL y SUPABASE_PUBLISHABLE_KEY en Vercel.',503);
-  if(!/^Bearer [\w.-]+$/.test(req.headers.authorization||''))fail('Inicia sesión desde Nube para usar IA y fuentes.',401);
+  if(!/^Bearer [\w.-]+$/.test(req.headers.authorization||''))fail('Tu sesión no está activa. Inicia sesión en Domi Schema Studio para cargar y generar.',401);
   const response=await fetch(url+'/auth/v1/user',{headers:{apikey:key,Authorization:req.headers.authorization},signal:AbortSignal.timeout(10000)});if(!response.ok)fail('Sesión caducada. Inicia sesión de nuevo.',401);
   const user=await response.json();const allowed=(process.env.AI_ALLOWED_EMAILS||'').toLowerCase().split(',').map(x=>x.trim());if(!user.email||!allowed.includes(user.email.toLowerCase())||!user.email_confirmed_at)fail('Tu cuenta aún no tiene acceso a la IA. Solicita al administrador que habilite tu correo.',403);return user.id;
 }
@@ -26,7 +26,7 @@ async function handler(req,res){res.setHeader('Cache-Control','no-store');res.se
     if(req.method!=='POST')return send(405,{error:'Método no permitido.'});
     const who=await authorize(req),now=Date.now();for(const [id,times] of recent){if(!times.some(t=>now-t<60000))recent.delete(id);}const times=(recent.get(who)||[]).filter(t=>now-t<60000);if(times.length>=20)fail('Espera un minuto antes de procesar más solicitudes.',429);recent.set(who,[...times,now]);
     const body=await bodyOf(req);
-    if(body.action==='extract'){if(typeof body.name!=='string'||typeof body.data!=='string'||body.data.length>3400000||!/^[A-Za-z0-9+/]*={0,2}$/.test(body.data))fail('Archivo inválido.');return send(200,await Extract.extractUpload(body.name,Buffer.from(body.data,'base64')));}
+    if(body.action==='extract'){if(typeof body.name!=='string'||typeof body.data!=='string'||body.data.length>3400000||!/^[A-Za-z0-9+/]*={0,2}$/.test(body.data))fail('Archivo inválido.');try{return send(200,await Extract.extractUpload(body.name,Buffer.from(body.data,'base64')));}catch(error){error.code='FILE_INVALID';throw error;}}
     if(body.action==='git')return send(200,await Extract.extractGit(body.url));
     const sources=checkSources(body.sources||[]);
     if(body.action==='analyze'){const data=await index(sources,!!body.semantic&&Providers.embeddingConfig().configured);return send(200,data);}
@@ -45,6 +45,6 @@ async function handler(req,res){res.setHeader('Cache-Control','no-store');res.se
       return send(200,{draft,context,analysis:indexed?.analysis||null,embedding:indexed?.embedding||null});
     }
     fail('Acción desconocida.');
-  }catch(e){const message=e.name==='TimeoutError'?'El procesamiento superó el tiempo disponible. Divide las fuentes.':e.message;send(e.status||400,{error:message||'No se pudo completar la operación.'});}
+  }catch(e){const message=e.name==='TimeoutError'?'El procesamiento superó el tiempo disponible. Divide las fuentes.':e.message;send(e.status||400,{error:message||'No se pudo completar la operación.',...(e.code==='FILE_INVALID'?{code:e.code}:{})});}
 }
 module.exports=handler;module.exports.checkSources=checkSources;module.exports.authorize=authorize;

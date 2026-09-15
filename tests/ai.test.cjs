@@ -52,3 +52,10 @@ test('Gemini requires fields and known evidence IDs in structured output and sti
   await assert.rejects(P.generate({provider:'gemini',model:'gemini-3.6-flash',prompt:'Facturación',context:chunks,grounded:true},env,async()=>({ok:true,json:async()=>({candidates:[{finishReason:'STOP',content:{parts:[{text:JSON.stringify(wrong)}]}}]})})),/cita no existe/);
 });
 test('API configuration works offline and production POST cannot use a browser bypass',async()=>{const handler=require('../api/ai.js');let output,status;const response={setHeader(){},set statusCode(v){status=v;},end(v){output=JSON.parse(v);}};await handler({method:'GET',headers:{}},response);assert.equal(status,200);assert.equal(output.requiresLogin,true);await handler({method:'POST',headers:{'x-domi-local':'true'},body:{action:'generate'}},response);assert.ok(status===401||status===503);assert.ok(output.error);});
+
+test('upload API distinguishes invalid files from authentication failures',async()=>{
+  const handler=require('../api/ai.js');let output,status;const response={setHeader(){},set statusCode(v){status=v;},end(v){output=JSON.parse(v);}};
+  await handler({method:'POST',domiLocal:true,headers:{},body:{action:'extract',name:'test.txt',data:Buffer.from('Cliente realiza Pedido').toString('base64')}},response);assert.equal(status,200);assert.equal(output.sources.length,1);
+  await handler({method:'POST',domiLocal:true,headers:{},body:{action:'extract',name:'test.exe',data:Buffer.from('invalid').toString('base64')}},response);assert.equal(status,400);assert.equal(output.code,'FILE_INVALID');
+  await handler({method:'POST',headers:{},body:{action:'extract',name:'test.txt',data:'eA=='}},response);assert.ok(status===401||status===503);assert.equal(output.code,undefined);
+});

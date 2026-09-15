@@ -23,7 +23,7 @@
     <p id="ai-inline-mode" class="ai-inline-hint"></p>
     <details class="ai-inline-details"><summary>Modelo y opciones <span id="ai-model-label"></span></summary><div id="ai-options-slot"><label for="ai-provider">Proveedor</label></div></details>
     <div id="ai-config-slot"></div><button type="button" id="ai-login" class="ai-inline-login" hidden>Iniciar sesión para generar</button><div id="ai-generate-slot"></div>
-    <div id="ai-status-slot" aria-live="polite"></div>
+    <div id="ai-status-slot" aria-live="polite"></div><button type="button" id="ai-retry-upload" class="ai-secondary" hidden>Reintentar carga pendiente</button><p id="ai-sync-status" class="ai-inline-hint" role="status"></p>
     <nav class="ai-inline-reports" aria-label="Resultados de IA"><button type="button" data-report="analysis">Análisis</button><button type="button" data-report="dashboard">Dashboard</button><button type="button" data-report="review">Recomendaciones</button><button type="button" data-report="generate">Borradores y citas</button></nav>`;
   const move=(id,slot)=>el(slot).append(el(id));
   ['ai-upload','ai-file'].forEach(id=>move(id,'ai-upload-slot'));
@@ -51,13 +51,19 @@
   sidebar.querySelectorAll('[data-report]').forEach(button=>button.onclick=()=>{if(!state)return;tab(button.dataset.report);render();dialog.showModal();});
   el('ai-login').onclick=()=>el('cloud-button').click();
   dialog.addEventListener('keydown',event=>event.stopPropagation());
-  let state=null,projectId=null,activeTab='analysis',busy=false,config=null,languageCharts=[],loadVersion=0;
+  let state=null,projectId=null,activeTab='analysis',busy=false,config=null,languageCharts=[],loadVersion=0,ownerId=null,pendingFiles=[],pendingProject=null,cloudReload=false;
   const blank=()=>({version:1,sources:[],skipped:[],analysis:null,draft:null,context:[],prompt:'',provider:'',updatedAt:new Date().toISOString()});
   const db=new Promise((resolve,reject)=>{const request=indexedDB.open('domi-ai-workspaces',1);request.onupgradeneeded=()=>request.result.createObjectStore('workspaces');request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(new Error('El navegador no permite guardar las fuentes.'));});
   async function store(key,value){const database=await db;return new Promise((resolve,reject)=>{const tx=database.transaction('workspaces',value===undefined?'readonly':'readwrite'),os=tx.objectStore('workspaces');const req=value===undefined?os.get(key):os.put(value,key);tx.oncomplete=()=>resolve(req.result);tx.onerror=()=>reject(new Error('No se pudieron guardar las fuentes. Exporta el expediente.'));});}
   function status(text,error=false){el('ai-status').textContent=text;el('ai-status').classList.toggle('error',error);}
-  async function save(){state.updatedAt=new Date().toISOString();await store(projectId,state);}
-  async function api(body){const session=await window.DomiCloud?.getSession();const response=await fetch('/api/ai',{method:body?'POST':'GET',headers:{...(body?{'Content-Type':'application/json'}:{}),...(session?.access_token?{Authorization:'Bearer '+session.access_token}:{})},...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(180000)});let data;try{data=await response.json();}catch{throw new Error('La API de IA no está disponible en esta dirección. Abre el servidor actualizado.');}if(!response.ok){const error=new Error(data.error||'No se pudo completar la solicitud.');error.status=response.status;throw error;}return data;}
+  async function removeStored(key){const database=await db;return new Promise((resolve,reject)=>{const tx=database.transaction('workspaces','readwrite');tx.objectStore('workspaces').delete(key);tx.oncomplete=resolve;tx.onerror=()=>reject(new Error('No se pudo migrar el expediente local.'));});}
+  const sync=window.DomiAISync.create({read:key=>store(key),write:(key,value)=>store(key,value),remove:removeStored,cloud:()=>window.DomiCloud,notify:(kind,error)=>{
+    el('ai-sync-status').textContent=kind==='saved'?'Fuentes y borradores sincronizados en la nube.':kind==='syncing'?'Sincronizando fuentes…':kind==='error'?'Copia local conservada · sincronización pendiente. '+(error?.message||'Comprueba tu conexión.'):'Fuentes guardadas en este navegador.';
+    el('ai-sync-status').classList.toggle('error',kind==='error');
+  }});
+  const apiClient=window.DomiAIClient.create({cloud:()=>window.DomiCloud,requiresLogin:()=>config?.requiresLogin!==false});
+  const api=body=>apiClient.request(body);
+  async function save(){state.updatedAt=new Date().toISOString();await sync.save(projectId,ownerId,state);}
   function tab(name){activeTab=name;dialog.querySelector('.ai-body').scrollTop=0;dialog.querySelectorAll('[data-ai-tab]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.aiTab===name)));for(const key of ['sources','analysis','generate','dashboard','review'])el('ai-'+key).hidden=key!==name;if(name==='dashboard')requestAnimationFrame(renderDashboard);}
   dialog.querySelectorAll('[data-ai-tab]').forEach(b=>b.onclick=()=>tab(b.dataset.aiTab));
   async function run(message,work){
@@ -65,7 +71,7 @@
     const controls=[...sidebar.querySelectorAll('button,input,textarea,select'),...dialog.querySelectorAll('button:not([data-ai-tab]):not(#ai-close)'),...['project-select','new-project','delete-project','new-map','load-example'].map(el)].filter(Boolean);
     const previous=controls.map(control=>control.disabled);controls.forEach(control=>control.disabled=true);
     try{await work();}catch(e){status(e.message||'No se pudo completar la operación.',true);if(e.status===401)el('ai-login').hidden=false;}
-    finally{busy=false;sidebar.removeAttribute('aria-busy');controls.forEach((control,i)=>control.disabled=previous[i]);render();if(editor.projectId()!==projectId)await loadProject();}
+    finally{busy=false;sidebar.removeAttribute('aria-busy');controls.forEach((control,i)=>control.disabled=previous[i]);render();if(cloudReload||editor.projectId()!==projectId){cloudReload=false;await loadProject();}}
   }
   function evidence(refs){return (refs||[]).map(r=>`<div class="ai-evidence"><b>${escape(r.name)} · ${escape(r.locator)}</b><blockquote>${escape(r.quote)}</blockquote></div>`).join('');}
   function renderDashboard(){
@@ -103,19 +109,38 @@
   async function add(sources,skipped=[]){const next=[...state.sources];let duplicates=0;for(const s of sources){if(next.some(n=>n.id===s.id)){duplicates++;continue;}next.push(s);}if(next.length>80||next.reduce((n,s)=>n+s.sections.reduce((m,p)=>m+p.text.length,0),0)>300000||core.chunkSources(next).length>250)throw new Error('La carga supera 80 fuentes, 250 fragmentos o 300.000 caracteres. Divide el proyecto.');state.skipped=[...state.skipped,...skipped].slice(-2000);if(next.length===state.sources.length){await save();status('No se agregaron fuentes nuevas. Consulta los duplicados o archivos omitidos.');return;}state.sources=next;invalidate();await analyze();status('Fuentes guardadas y analizadas.'+(duplicates?' Se omitieron '+duplicates+' duplicados.':'')+(!state.embedding?.configured?' Embeddings semánticos pendientes de configuración.':''));}
   async function loadProject(){
     if(busy)return;const version=++loadVersion,id=editor.projectId();sidebar.inert=true;
-    try{const loaded=(await store(id))||blank();if(version!==loadVersion||id!==editor.projectId())return;
+    try{const currentSession=await window.DomiCloud?.getSession();const nextOwner=currentSession?.user?.id||null;const loaded=(await sync.load(id,nextOwner))||blank();if(version!==loadVersion||id!==editor.projectId())return;
+      if(ownerId&&ownerId!==nextOwner){pendingFiles=[];el('ai-retry-upload').hidden=true;}ownerId=nextOwner;
       projectId=id;state=loaded;el('ai-prompt').value=state.prompt||'';el('ai-provider').value=state.provider||'';
       el('ai-source-preview').hidden=true;render();status('Carga tus fuentes o escribe una idea para empezar.');
       if(!config)config=await api();if(version!==loadVersion)return;render();
     }catch(e){status(e.message,true);}finally{if(version===loadVersion)sidebar.inert=false;}
   }
   window.addEventListener('domi:projects-changed',()=>{if(!busy&&editor.projectId()!==projectId)loadProject();else if(state)el('ai-project-name').textContent=editor.projectName();});
-  window.addEventListener('domi:cloud-state',()=>{if(state)render();});
+  window.addEventListener('domi:cloud-state',()=>{if(busy){cloudReload=true;return;}loadProject();});
+  window.addEventListener('online',()=>{if(busy){cloudReload=true;return;}loadProject();});
   loadProject();
   el('ai-close').onclick=()=>{languageCharts.forEach(chart=>chart.dispose());languageCharts=[];dialog.close();};
   window.addEventListener('resize',()=>languageCharts.forEach(chart=>chart.resize()));
   el('ai-upload').onclick=()=>el('ai-file').click();
-  async function uploadFiles(files){return run('Leyendo archivos…',async()=>{if(files.length>80)throw new Error('Selecciona como máximo 80 archivos.');const sources=[],skipped=[];for(let i=0;i<files.length;i++){const f=files[i];status(`Procesando ${i+1}/${files.length}: ${f.name}…`);try{if(!/\.(xls|xlsx|pdf|docx|txt|md|markdown|csv|tsv|json|zip|js|ts|tsx|jsx|mjs|cjs|py|sql|java|go|rs|php|rb|html|css|yaml|yml|xml|mmd|mermaid|png|jpg|jpeg|webp)$/i.test(f.name))throw new Error(/\.(mp4|mov|webm|avi)$/i.test(f.name)?'Carga la transcripción del video como TXT, DOCX o PDF.':'Formato no admitido. Usa Excel, PDF, DOCX, texto, código o imágenes.');if(f.size>2500000)throw new Error('Supera 2,5 MB.');const data=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result.split(',')[1]);reader.onerror=()=>reject(new Error('No se pudo leer el archivo.'));reader.readAsDataURL(f);});const result=await api({action:'extract',name:f.name,data});sources.push(...result.sources);skipped.push(...result.skipped);}catch(e){skipped.push({name:f.name,reason:e.message});}}await add(sources,skipped);if(skipped.length)status(`Carga terminada: ${sources.length} fuentes procesadas, ${skipped.length} archivos omitidos. Consulta los motivos.`,!sources.length);});};
+  el('ai-retry-upload').onclick=()=>{if(editor.projectId()!==pendingProject)return status('Selecciona el proyecto donde comenzaste la carga para reintentar.',true);uploadFiles(pendingFiles);};
+  async function uploadFiles(files){return run('Leyendo archivos…',async()=>{
+    if(files.length>80)throw new Error('Selecciona como máximo 80 archivos.');
+    pendingFiles=files;pendingProject=projectId;el('ai-retry-upload').hidden=!files.length;
+    await apiClient.session();
+    const result=await window.DomiAIClient.batch(files,async(f,i)=>{
+      status(`Procesando ${i+1}/${files.length}: ${f.name}…`);
+      const invalid=message=>Object.assign(new Error(message),{code:'FILE_INVALID'});
+      if(!/\.(xls|xlsx|pdf|docx|txt|md|markdown|csv|tsv|json|zip|js|ts|tsx|jsx|mjs|cjs|py|sql|java|go|rs|php|rb|html|css|yaml|yml|xml|mmd|mermaid|png|jpg|jpeg|webp)$/i.test(f.name))throw invalid(/\.(mp4|mov|webm|avi)$/i.test(f.name)?'Carga la transcripción del video como TXT, DOCX o PDF.':'Formato no admitido. Usa Excel, PDF, DOCX, texto, código o imágenes.');
+      if(f.size>2500000)throw invalid('Supera 2,5 MB.');
+      const data=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result.split(',')[1]);reader.onerror=()=>reject(invalid('No se pudo leer el archivo.'));reader.readAsDataURL(f);});
+      return api({action:'extract',name:f.name,data});
+    });
+    pendingFiles=result.pending;el('ai-retry-upload').hidden=!pendingFiles.length;
+    if(result.sources.length||result.skipped.length)await add(result.sources,result.skipped);
+    if(result.error)throw result.error;
+    if(result.skipped.length)status(`Carga terminada: ${result.sources.length} fuentes procesadas, ${result.skipped.length} archivos omitidos. Consulta los motivos.`,!result.sources.length);
+  });}
   el('ai-text-add').onclick=()=>run('Analizando texto…',async()=>{const text=el('ai-text').value.trim();if(!text)throw new Error('Pega un texto antes de agregarlo.');const name=(el('ai-text-name').value.trim()||'Texto pegado')+'.txt';const bytes=new TextEncoder().encode(name+'\n'+text),digest=await crypto.subtle.digest('SHA-256',bytes),id=Array.from(new Uint8Array(digest),x=>x.toString(16).padStart(2,'0')).join('');await add([{id,name,type:'texto',bytes:bytes.length,sections:[{locator:'texto pegado',text}],warnings:[]}]);el('ai-text').value='';el('ai-text-name').value='';});
   el('ai-file').onchange=event=>{const files=[...event.target.files];event.target.value='';uploadFiles(files);};
   el('ai-upload').ondragover=event=>{event.preventDefault();event.dataTransfer.dropEffect='copy';};
@@ -126,7 +151,7 @@
   el('ai-prompt').onchange=()=>{state.prompt=el('ai-prompt').value;save().catch(e=>status(e.message,true));};
   async function openDraft(){
     const map=core.toMap(state.draft);window.SchemaModel.validate(map);await save();
-    const next=editor.importDraft(map);await store(next,state);projectId=next;
+    const next=editor.importDraft(map);await sync.save(next,ownerId,state);projectId=next;
   }
   el('ai-generate-button').onclick=()=>run('Generando esquema… puede tardar hasta un minuto.',async()=>{
     if(config?.requiresLogin&&!(await window.DomiCloud?.getSession())){el('ai-login').hidden=false;throw new Error('Inicia sesión para generar. Tu prompt y tus fuentes se conservan.');}
@@ -137,6 +162,6 @@
     await openDraft();render();status('Esquema creado en un proyecto nuevo. Ya puedes editarlo en el lienzo.');
   });
   el('ai-export').onclick=()=>{if(!state)return;const blob=new Blob([JSON.stringify({project:editor.projectName(),...state},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='domi-expediente-ia.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
-  el('ai-save-cloud').onclick=()=>run('Guardando fuentes y revisión en Supabase…',async()=>{if(!window.DomiCloud)throw new Error('La conexión de nube no está disponible.');await window.DomiCloud.saveAI(projectId,state);status('Fuentes, análisis y revisión guardados en Supabase.');});
-  el('ai-load-cloud').onclick=()=>run('Buscando expediente en Supabase…',async()=>{if(!window.DomiCloud)throw new Error('La conexión de nube no está disponible.');const cloud=await window.DomiCloud.loadAI(projectId);if(!cloud)throw new Error('Este proyecto no tiene un expediente en la nube.');if(!Array.isArray(cloud.sources)||cloud.version!==1)throw new Error('Expediente no compatible.');if(state.sources.length&&new Date(state.updatedAt)>new Date(cloud.updatedAt))throw new Error('Tu expediente local es más reciente. Guárdalo en nube antes de reemplazarlo.');state=cloud;await store(projectId,state);el('ai-prompt').value=state.prompt||'';el('ai-provider').value=state.provider||'openai';status('Expediente recuperado.');});
+  el('ai-save-cloud').onclick=()=>run('Guardando fuentes y revisión en Supabase…',async()=>{if(!window.DomiCloud)throw new Error('La conexión de nube no está disponible.');await window.DomiCloud.saveAI(projectId,state,ownerId);status('Fuentes, análisis y revisión guardados en Supabase.');});
+  el('ai-load-cloud').onclick=()=>run('Buscando expediente en Supabase…',async()=>{if(!window.DomiCloud)throw new Error('La conexión de nube no está disponible.');const cloud=await window.DomiCloud.loadAI(projectId);if(!cloud)throw new Error('Este proyecto no tiene un expediente en la nube.');if(!Array.isArray(cloud.sources)||cloud.version!==1)throw new Error('Expediente no compatible.');if(state.sources.length&&new Date(state.updatedAt)>new Date(cloud.updatedAt))throw new Error('Tu expediente local es más reciente. Guárdalo en nube antes de reemplazarlo.');state=cloud;await sync.save(projectId,ownerId,state);el('ai-prompt').value=state.prompt||'';el('ai-provider').value=state.provider||'openai';status('Expediente recuperado.');});
 })();

@@ -37,6 +37,7 @@
 #ai-inline #ai-status.error{color:#a4352d;background:#fff1ef;border-radius:7px;padding:9px}
 #ai-inline[aria-busy=true] #ai-status{border-left:3px solid #267454;padding-left:10px}
 .ai-inline-reports{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:8px 0}
+#ai-inline #ai-sync-status.error{color:#a4352d;overflow-wrap:anywhere}
 .ai-inline-reports button{background:transparent;color:#597568;border:0;border-radius:5px;padding:7px 4px;text-align:left;font-size:11px}
 .ai-inline-reports button:hover{background:#eef5f0}
 #ai-inline .ai-list{max-height:220px;overflow:auto;margin-top:8px}

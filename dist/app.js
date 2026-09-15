@@ -29,7 +29,7 @@ let view={x:0,y:0,z:1}, gesture=null, pending=null, tourStep=0, toastTimer, dial
 const container=$('canvas-container');
 function toast(message){$('toast').textContent=message;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,3200);}
 function persist(){try{const project=projects.find(p=>p.id===currentProjectId);if(project){project.name=map.title;project.updatedAt=new Date().toISOString();project.map=copy(map);}localStorage.setItem(STORAGE,JSON.stringify({version:1,currentId:currentProjectId,projects}));storageOK=true;}catch{storageOK=false;}showSave();window.dispatchEvent(new CustomEvent('domi:projects-changed'));}
-function showSave(){const cloud=document.body.dataset.cloud==='online';$('save-state').textContent=t(!storageOK?'saveError':cloud?'cloudSaved':'saved');$('save-state').classList.toggle('error',!storageOK);}
+function showSave(){const cloud=document.body.dataset.cloud==='online';$('save-state').textContent=!storageOK?t('saveError'):cloud?(document.body.dataset.cloudSync==='saved'?'Mapa guardado en Supabase':document.body.dataset.cloudSync==='error'?'Mapa guardado localmente · nube pendiente':'Sincronizando mapa…'):t('saved');$('save-state').classList.toggle('error',!storageOK||document.body.dataset.cloudSync==='error');}
 function checkpoint(){history.push(JSON.stringify(map));if(history.length>80)history.shift();future=[];}
 function commit(fn){checkpoint();fn();persist();render();}
 function restore(snapshot){map=M.validate(JSON.parse(snapshot));activeModules=new Set(map.modules.map(m=>m.id));selected=null;cancelConnection();persist();render();}
