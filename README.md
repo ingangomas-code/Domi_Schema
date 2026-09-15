@@ -6,7 +6,7 @@ Editor visual basado en el HTML de Constructora ERP proporcionado. Conserva los 
 
 ### Upgrade IA, fuentes y colaboración
 
-Carga de documentos y código, análisis de contenido, conectores de modelos, borradores con evidencias y recomendaciones revisables en el panel izquierdo. El dashboard ECharts muestra lenguajes detectados en repositorios por volumen de código y lenguajes recomendados por el modelo cuando el prompt los solicita. Ejecuta `npm ci` y `npm run dev`. Consulta [configuración, formatos, verificación y límites](docs/IA-Y-FUENTES.md). La generación real requiere configurar las claves de modelos y embeddings en el servidor; el análisis léxico funciona sin ellas.
+Carga de documentos y código, análisis de contenido, conectores de modelos, borradores con evidencias y recomendaciones revisables integrados directamente en la barra izquierda. Generar esquema abre el resultado editable en el lienzo como un nuevo proyecto. El dashboard ECharts muestra lenguajes detectados en repositorios por volumen de código y lenguajes recomendados por el modelo cuando el prompt los solicita. Ejecuta `npm ci` y `npm run dev`. Consulta [configuración, formatos, verificación y límites](docs/IA-Y-FUENTES.md). La generación real requiere configurar las claves de modelos y embeddings en el servidor; el análisis léxico funciona sin ellas.
 
 Abre `dist/index.html` directamente en un navegador o ejecuta `node serve.cjs` y visita `http://127.0.0.1:4173`.
 

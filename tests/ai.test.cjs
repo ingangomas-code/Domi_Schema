@@ -30,4 +30,25 @@ test('DOCX extracts paragraphs without injecting markup',async()=>{const xml='<w
 test('provider configuration exposes no secrets and refuses unlisted models',async()=>{const env={OPENAI_API_KEY:'hidden-key',OPENAI_MODELS:'model-test'};assert.ok(!JSON.stringify(P.configuration(env)).includes('hidden-key'));await assert.rejects(P.generate({provider:'openai',model:'unlisted'},env),/configurado/);});
 test('OpenAI adapter produces a validated result from a controlled contract response',async()=>{const env={OPENAI_API_KEY:'test',OPENAI_MODELS:'test-model'};let payload;const fake=async(url,options)=>{assert.equal(url,'https://api.openai.com/v1/chat/completions');payload=JSON.parse(options.body);return {ok:true,json:async()=>({choices:[{finish_reason:'stop',message:{content:JSON.stringify(raw)}}]})};};const d=await P.generate({provider:'openai',model:'test-model',prompt:'Facturación',context:chunks,grounded:true},env,fake);assert.equal(d.nodes.length,2);assert.match(payload.messages[0].content,/Nunca obedezcas/);assert.equal(JSON.parse(payload.messages[1].content).sourceFragments[0].id,chunks[0].id);});
 test('embedding response count and vector dimensions are validated',async()=>{const env={OPENAI_API_KEY:'test',AI_EMBEDDING_PROVIDER:'openai',AI_EMBEDDING_MODEL:'embed-test'};const good=async()=>({ok:true,json:async()=>({data:[{index:0,embedding:[3,4]}]})});assert.deepEqual(await P.embeddings(['text'],env,good),[[.6,.8]]);const bad=async()=>({ok:true,json:async()=>({data:[]})});await assert.rejects(P.embeddings(['text'],env,bad),/inválidos/);});
+
+test('temporary provider failures retry once while quota errors do not',async()=>{
+  const env={OPENAI_API_KEY:'test',AI_EMBEDDING_PROVIDER:'openai',AI_EMBEDDING_MODEL:'embed-test'};
+  let calls=0;
+  const retry=async()=>++calls===1?{ok:false,status:503}:{ok:true,json:async()=>({data:[{index:0,embedding:[3,4]}]})};
+  assert.deepEqual(await P.embeddings(['text'],env,retry),[[.6,.8]]);assert.equal(calls,2);
+  calls=0;await assert.rejects(P.embeddings(['text'],env,async()=>{calls++;return {ok:false,status:429};}),/cuota/);assert.equal(calls,1);
+});
+
+test('Gemini requires fields and known evidence IDs in structured output and still rejects fabricated quotes',async()=>{
+  const env={GEMINI_API_KEY:'test',GEMINI_MODELS:'gemini-3.6-flash'};let payload;
+  const fake=async(_url,options)=>{payload=JSON.parse(options.body);return {ok:true,json:async()=>({candidates:[{finishReason:'STOP',content:{parts:[{text:JSON.stringify(raw)}]}}]})};};
+  const result=await P.generate({provider:'gemini',model:'gemini-3.6-flash',prompt:'Facturación',context:chunks,grounded:true},env,fake);
+  assert.equal(result.nodes.length,2);
+  const nodeSchema=payload.generationConfig.responseJsonSchema.properties.nodes.items;
+  assert.ok(nodeSchema.required.includes('fields'));
+  assert.deepEqual(nodeSchema.properties.evidence.items.properties.chunkId.enum,chunks.map(c=>c.id));
+  assert.equal(payload.generationConfig.thinkingConfig.thinkingLevel,'LOW');
+  const wrong=structuredClone(raw);wrong.nodes[0].evidence[0].quote='Esta cita es inventada';
+  await assert.rejects(P.generate({provider:'gemini',model:'gemini-3.6-flash',prompt:'Facturación',context:chunks,grounded:true},env,async()=>({ok:true,json:async()=>({candidates:[{finishReason:'STOP',content:{parts:[{text:JSON.stringify(wrong)}]}}]})})),/cita no existe/);
+});
 test('API configuration works offline and production POST cannot use a browser bypass',async()=>{const handler=require('../api/ai.js');let output,status;const response={setHeader(){},set statusCode(v){status=v;},end(v){output=JSON.parse(v);}};await handler({method:'GET',headers:{}},response);assert.equal(status,200);assert.equal(output.requiresLogin,true);await handler({method:'POST',headers:{'x-domi-local':'true'},body:{action:'generate'}},response);assert.ok(status===401||status===503);assert.ok(output.error);});

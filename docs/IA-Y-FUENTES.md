@@ -1,6 +1,6 @@
 # IA y fuentes — revisión local
 
-La sección **IA y fuentes** está en el panel izquierdo. En pantallas pequeñas abre primero **Mostrar módulos** (☰). El botón abre un espacio con Fuentes, Análisis, Generar, Dashboard y Recomendaciones. Los borradores se importan mediante el validador y el creador de proyectos existentes. No se sustituye el mapa abierto.
+La sección **Crear esquema** forma parte de la barra izquierda, debajo de Módulos. Permite cargar o arrastrar archivos, pegar texto, conectar GitHub y escribir un prompt. Selecciona automáticamente un proveedor configurado (Gemini en producción) y usa contexto cuando hay fuentes o creación por prompt cuando no las hay. **Generar esquema** valida el resultado y lo abre directamente en el lienzo como un proyecto nuevo, conservando el anterior. Análisis, Dashboard, Recomendaciones y Borradores y citas abren informes opcionales. En pantallas pequeñas abre **Mostrar módulos** (☰).
 
 ## Iniciar
 

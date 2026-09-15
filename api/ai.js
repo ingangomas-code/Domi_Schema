@@ -11,7 +11,7 @@ async function authorize(req){
   if(!url||!key)fail('Configura SUPABASE_URL y SUPABASE_PUBLISHABLE_KEY en Vercel.',503);
   if(!/^Bearer [\w.-]+$/.test(req.headers.authorization||''))fail('Inicia sesión desde Nube para usar IA y fuentes.',401);
   const response=await fetch(url+'/auth/v1/user',{headers:{apikey:key,Authorization:req.headers.authorization},signal:AbortSignal.timeout(10000)});if(!response.ok)fail('Sesión caducada. Inicia sesión de nuevo.',401);
-  const user=await response.json();const allowed=(process.env.AI_ALLOWED_EMAILS||'').toLowerCase().split(',').map(x=>x.trim());if(!user.email||!allowed.includes(user.email.toLowerCase())||!user.email_confirmed_at)fail('Tu cuenta no está habilitada para la API de IA. Configura AI_ALLOWED_EMAILS.',403);return user.id;
+  const user=await response.json();const allowed=(process.env.AI_ALLOWED_EMAILS||'').toLowerCase().split(',').map(x=>x.trim());if(!user.email||!allowed.includes(user.email.toLowerCase())||!user.email_confirmed_at)fail('Tu cuenta aún no tiene acceso a la IA. Solicita al administrador que habilite tu correo.',403);return user.id;
 }
 function checkSources(sources){
   if(!Array.isArray(sources)||sources.length>80)fail('Máximo 80 fuentes por proyecto.');let total=0;const ids=new Set();
@@ -39,6 +39,7 @@ async function handler(req,res){res.setHeader('Cache-Control','no-store');res.se
       const context=grounded?AI.retrieve(indexed.chunks,body.prompt,indexed.vectors,q):[];
       if(grounded&&!context.length)fail('No se encontró contexto relacionado. Amplía las fuentes o cambia el prompt.');
       const draft=await Providers.generate({provider:body.provider,model:body.model,prompt:body.prompt,context,grounded});
+      if(!draft.nodes.length)fail('No se encontraron elementos suficientes para crear el esquema. Amplía las fuentes o precisa el prompt.');
       // Reuse the editor validator before offering any generated map for import.
       require('../dist/model.js').validate(AI.toMap(draft));
       return send(200,{draft,context,analysis:indexed?.analysis||null,embedding:indexed?.embedding||null});
