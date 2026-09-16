@@ -18,7 +18,7 @@ function imageDimensions(b){
 }
 function recognizeImage(buffer){
   const {Worker}=require('node:worker_threads');
-  return new Promise((resolve,reject)=>{const worker=new Worker(path.join(__dirname,'ocr-worker.cjs'),{workerData:buffer});let settled=false;const done=(error,data)=>{if(settled)return;settled=true;clearTimeout(timer);worker.terminate();error?reject(new Error(error)):resolve(data);};const timer=setTimeout(()=>done('OCR excedió 40 segundos. Reduce la imagen o vuelve a intentar.'),40000);worker.on('message',data=>done(data.error?'No se pudo completar OCR. Comprueba la imagen y el acceso a los datos de idioma.':null,data));worker.on('error',()=>done('El proceso OCR no pudo leer la imagen.'));worker.on('exit',()=>{if(!settled)done('El proceso OCR se cerró antes de terminar.');});});
+  return new Promise((resolve,reject)=>{const worker=new Worker(require.resolve('./ocr-worker.cjs'),{workerData:{buffer,workerPath:require.resolve('tesseract.js/src/worker-script/node/index.js')}});let settled=false;const done=(error,data)=>{if(settled)return;settled=true;clearTimeout(timer);worker.terminate();error?reject(Object.assign(new Error(error),{status:503})):resolve(data);};const timer=setTimeout(()=>done('OCR excedió 40 segundos. Reduce la imagen o vuelve a intentar.'),40000);worker.on('message',data=>{if(data.error)console.error('OCR processing failed:',data.error);done(data.error?'No se pudo completar OCR. La carga queda pendiente; vuelve a intentarlo.':null,data);});worker.on('error',error=>{console.error('OCR worker failed:',error.code||error.name,error.message);done('El lector de imágenes del servidor no está disponible. La carga queda pendiente.');});worker.on('exit',()=>{if(!settled)done('El proceso OCR se cerró antes de terminar.');});});
 }
 function safePath(name){return !name.includes('\\')&&!name.startsWith('/')&&!/^[a-z]:/i.test(name)&&!name.split('/').includes('..')&&!name.includes('\0');}
 function ignored(name){return /(^|\/)(node_modules|\.git|vendor|\.next|dist|build|__MACOSX)(\/|$)|(^|\/)(\.env(?:\..*)?|.*\.(pem|key|p12)|package-lock\.json|yarn\.lock|pnpm-lock\.yaml)$/i.test(name);}
@@ -35,8 +35,8 @@ async function extractFile(name,buffer){
     const parsed=require('./spreadsheet.cjs').extractSpreadsheet(buffer);
     source.sections=parsed.sections;source.profile=parsed.profile;source.warnings=parsed.warnings;
   }else if(ext==='.pdf'){
-    const {PDFParse}=require('pdf-parse'),parser=new PDFParse({data:new Uint8Array(buffer)});
-    try{const info=await parser.getInfo();if(info.total>60)throw new Error('Máximo 60 páginas por PDF.');const result=await parser.getText();source.sections=result.pages.map(p=>({locator:'página '+p.num,text:p.text}));if(!source.sections.some(p=>p.text.trim().length>15))throw new Error('PDF escaneado sin texto: exporta sus páginas como imágenes para OCR.');source.warnings.push('Se extrae texto; las flechas y posiciones visuales del PDF requieren revisión.');}finally{await parser.destroy();}
+    source.sections=await require('./pdf.cjs')(buffer);
+    source.warnings.push('Se extrae texto; las flechas y posiciones visuales del PDF requieren revisión.');
   }else if(ext==='.docx'){
     archive(buffer,()=>false);const mammoth=require('mammoth');const result=await mammoth.extractRawText({buffer});source.sections=[{locator:'documento',text:result.value}];source.warnings.push(...result.messages.map(m=>String(m.message)), 'La extracción de Word conserva texto, pero no valida relaciones visuales.');
   }else if(/\.(png|jpg|jpeg|webp)$/i.test(name)){

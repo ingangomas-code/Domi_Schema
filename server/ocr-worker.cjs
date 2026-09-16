@@ -5,8 +5,8 @@ const {createWorker}=require('tesseract.js');
 (async()=>{
   let worker;
   try{
-    worker=await createWorker('spa+eng',1,{cachePath:require('node:os').tmpdir(),errorHandler:error=>parentPort.postMessage({error:String(error)})});
-    const {data}=await worker.recognize(Buffer.from(workerData));parentPort.postMessage({text:data.text,confidence:data.confidence});
+    worker=await createWorker('spa+eng',1,{workerPath:workerData.workerPath,cachePath:require('node:os').tmpdir(),errorHandler:error=>parentPort.postMessage({error:String(error)})});
+    const {data}=await worker.recognize(Buffer.from(workerData.buffer));parentPort.postMessage({text:data.text,confidence:data.confidence});
   }catch(e){parentPort.postMessage({error:e.message||String(e)});}
   finally{await worker?.terminate();}
 })();

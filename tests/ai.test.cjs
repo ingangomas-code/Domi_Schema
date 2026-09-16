@@ -59,3 +59,11 @@ test('upload API distinguishes invalid files from authentication failures',async
   await handler({method:'POST',domiLocal:true,headers:{},body:{action:'extract',name:'test.exe',data:Buffer.from('invalid').toString('base64')}},response);assert.equal(status,400);assert.equal(output.code,'FILE_INVALID');
   await handler({method:'POST',headers:{},body:{action:'extract',name:'test.txt',data:'eA=='}},response);assert.ok(status===401||status===503);assert.equal(output.code,undefined);
 });
+
+test('missing extraction runtime is retryable and never reported as an invalid document',async()=>{
+  const handler=require('../api/ai.js'),original=E.extractUpload;let output,status;
+  const response={setHeader(){},set statusCode(v){status=v;},end(v){output=JSON.parse(v);}};
+  E.extractUpload=async()=>{throw Object.assign(new Error('PDF runtime unavailable'),{status:503});};
+  try{await handler({method:'POST',domiLocal:true,headers:{},body:{action:'extract',name:'test.pdf',data:'eA=='}},response);assert.equal(status,503);assert.equal(output.code,undefined);}
+  finally{E.extractUpload=original;}
+});

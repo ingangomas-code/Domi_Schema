@@ -26,7 +26,7 @@ async function handler(req,res){res.setHeader('Cache-Control','no-store');res.se
     if(req.method!=='POST')return send(405,{error:'Método no permitido.'});
     const who=await authorize(req),now=Date.now();for(const [id,times] of recent){if(!times.some(t=>now-t<60000))recent.delete(id);}const times=(recent.get(who)||[]).filter(t=>now-t<60000);if(times.length>=20)fail('Espera un minuto antes de procesar más solicitudes.',429);recent.set(who,[...times,now]);
     const body=await bodyOf(req);
-    if(body.action==='extract'){if(typeof body.name!=='string'||typeof body.data!=='string'||body.data.length>3400000||!/^[A-Za-z0-9+/]*={0,2}$/.test(body.data))fail('Archivo inválido.');try{return send(200,await Extract.extractUpload(body.name,Buffer.from(body.data,'base64')));}catch(error){error.code='FILE_INVALID';throw error;}}
+    if(body.action==='extract'){if(typeof body.name!=='string'||typeof body.data!=='string'||body.data.length>3400000||!/^[A-Za-z0-9+/]*={0,2}$/.test(body.data))fail('Archivo inválido.');try{return send(200,await Extract.extractUpload(body.name,Buffer.from(body.data,'base64')));}catch(error){if(!error.status||error.status<500)error.code='FILE_INVALID';throw error;}}
     if(body.action==='git')return send(200,await Extract.extractGit(body.url));
     const sources=checkSources(body.sources||[]);
     if(body.action==='analyze'){const data=await index(sources,!!body.semantic&&Providers.embeddingConfig().configured);return send(200,data);}
