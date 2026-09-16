@@ -56,7 +56,18 @@
       return{id:r.id===undefined?uid():id(r.id),from:r.from,to:r.to,fromPort:r.fromPort||'right',toPort:r.toPort||'left',label:str(r.label,160),kind:str(r.kind,30,'1:N')};
     });
     unique(relationships.map(r=>r.id));
-    return{version:1,title:str(input.title,100,'Mi mapa')||'Mi mapa',groups,modules,entities,relationships};
+    if(input.cards!==undefined&&(!Array.isArray(input.cards)||input.cards.length>100))fail();
+    const list=(value,max)=>{if(!Array.isArray(value)||value.length>max)fail();return value;};
+    const cards=(input.cards||[]).map(c=>{
+      if(!c||!['summary','dashboard'].includes(c.kind)||![c.x,c.y,c.w,c.h].every(Number.isFinite)||Math.abs(c.x)>100000||Math.abs(c.y)>100000||c.w<320||c.w>1600||c.h<240||c.h>2000)fail();
+      if(c.activeChart!==undefined&&(!Number.isInteger(c.activeChart)||c.activeChart<0||c.activeChart>=Math.max(1,c.charts?.length||0)))fail();
+      return{id:id(c.id),kind:c.kind,x:c.x,y:c.y,w:c.w,h:c.h,activeChart:c.activeChart||0,title:str(c.title,300),body:str(c.body,10000),
+        metrics:list(c.metrics||[],20).map(m=>({label:str(m.label),value:str(m.value,100)})),
+        references:list(c.references||[],40).map(r=>({name:str(r.name),locator:str(r.locator),quote:str(r.quote,2000)})),
+        charts:list(c.charts||[],64).map(chart=>({title:str(chart.title),unit:str(chart.unit),note:str(chart.note,1000),points:list(chart.points,100).map(p=>{if(!Number.isFinite(p.value))fail();return{label:str(p.label),value:p.value};})}))};
+    });
+    unique(cards.map(c=>c.id));
+    return{version:1,title:str(input.title,100,'Mi mapa')||'Mi mapa',groups,modules,entities,relationships,cards};
   }
   function connect(map, from, fromPort, to, toPort) {
     const endpoints=new Set([...map.entities.map(n=>n.id),...(map.groups||[]).map(g=>g.id)]);

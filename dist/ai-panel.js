@@ -24,7 +24,7 @@
     <details class="ai-inline-details"><summary>Modelo y opciones <span id="ai-model-label"></span></summary><div id="ai-options-slot"><label for="ai-provider">Proveedor</label></div></details>
     <div id="ai-config-slot"></div><button type="button" id="ai-login" class="ai-inline-login" hidden>Iniciar sesión para generar</button><div id="ai-generate-slot"></div>
     <div id="ai-status-slot" aria-live="polite"></div><button type="button" id="ai-retry-upload" class="ai-secondary" hidden>Reintentar carga pendiente</button><p id="ai-sync-status" class="ai-inline-hint" role="status"></p>
-    <nav class="ai-inline-reports" aria-label="Resultados de IA"><button type="button" data-report="analysis">Análisis</button><button type="button" data-report="dashboard">Dashboard</button><button type="button" data-report="review">Recomendaciones</button><button type="button" data-report="generate">Borradores y citas</button></nav>`;
+    <button type="button" id="ai-canvas-insights" class="ai-inline-canvas">＋ Resumen y dashboard al lienzo</button><nav class="ai-inline-reports" aria-label="Resultados de IA"><button type="button" data-report="analysis">Análisis</button><button type="button" data-report="dashboard">Dashboard</button><button type="button" data-report="review">Recomendaciones</button><button type="button" data-report="generate">Borradores y citas</button></nav>`;
   const move=(id,slot)=>el(slot).append(el(id));
   ['ai-upload','ai-file'].forEach(id=>move(id,'ai-upload-slot'));
   el('ai-upload').innerHTML='<strong>＋ Cargar archivos</strong><span>o arrástralos aquí</span>';
@@ -74,10 +74,29 @@
     finally{busy=false;sidebar.removeAttribute('aria-busy');controls.forEach((control,i)=>control.disabled=previous[i]);render();if(cloudReload||editor.projectId()!==projectId){cloudReload=false;await loadProject();}}
   }
   function evidence(refs){return (refs||[]).map(r=>`<div class="ai-evidence"><b>${escape(r.name)} · ${escape(r.locator)}</b><blockquote>${escape(r.quote)}</blockquote></div>`).join('');}
+  let generalPreview=null;
+  function renderGeneralDashboard(host){
+    if(generalPreview)window.DomiCards.render(generalPreview,[]);
+    const section=document.createElement('section');section.innerHTML='<div class="ai-dashboard-intro"><div><span class="eyebrow">IDEAS · CONTEXTO · DATOS</span><h3>Resumen y dashboard de tus fuentes</h3></div><p>No necesitas código ni relaciones. Puedes llevar estas tarjetas al lienzo y guardarlas con tu proyecto. Los gráficos muestran hasta 12 barras; la tabla conserva todos los valores disponibles.</p></div><div class="ai-general-actions"><button class="ai-primary" data-canvas-kind="summary">Añadir resumen al lienzo</button><button class="ai-secondary" data-canvas-kind="dashboard">Añadir dashboard al lienzo</button></div><div class="ai-general-preview"></div>';
+    host.prepend(section);generalPreview=section.querySelector('.ai-general-preview');
+    const cards=window.DomiInsights.build(state);window.DomiCards.render(generalPreview,cards.map((c,i)=>({...c,id:'preview-'+i})));
+    section.querySelectorAll('[data-canvas-kind]').forEach(button=>{button.disabled=!cards.some(c=>c.kind===button.dataset.canvasKind);button.onclick=()=>addInsightCards(button.dataset.canvasKind);});
+  }
+  function addInsightCards(kind){
+    try{
+      const cards=window.DomiInsights.build(state).filter(c=>!kind||c.kind===kind);
+      if(!cards.length)return status('Carga fuentes o genera un borrador para crear tarjetas.',true);
+      const choice=generalPreview?.querySelector('select');
+      if(kind==='dashboard'&&choice)cards[0].activeChart=Number(choice.value);
+      editor.addCards(cards);dialog.close();document.body.classList.remove('modules-open');
+      status('Tarjetas añadidas al lienzo. Arrastra sus cabeceras para moverlas; Editar permite añadir notas.');
+    }catch(error){status(error.message,true);}
+  }
   function renderDashboard(){
-    const host=el('ai-dashboard-content');if(!host||!state)return;languageCharts.forEach(chart=>chart.dispose());languageCharts=[];
+    const host=el('ai-dashboard-content');if(!host||!state||!dialog.open)return;languageCharts.forEach(chart=>chart.dispose());languageCharts=[];
     const detected=state.analysis?.languages||[],recommended=state.draft?.recommendedLanguages||[];
     host.innerHTML=`<div class="ai-dashboard-intro"><div><span class="eyebrow">TECNOLOGÍAS DEL PROYECTO</span><h3>Lenguajes detectados y recomendados</h3></div><p>Los detectados se calculan por extensión y volumen del código cargado. Las recomendaciones provienen del borrador y muestran prioridad relativa; no representan confianza estadística.</p></div><div class="ai-dashboard-grid"><div class="ai-card"><h3>Detectados en el código</h3>${detected.length?'<div id="ai-detected-chart" class="ai-chart" aria-label="Gráfico de lenguajes detectados"></div>'+detected.map(x=>`<div class="ai-language-row"><span>${escape(x.name)}</span><b>${x.percent.toFixed(1)}%</b><small>${x.files} archivo${x.files===1?'':'s'} · ${x.characters.toLocaleString('es')} caracteres</small></div>`).join(''):'<div class="ai-empty"><b>Sin lenguajes detectados</b><p>Conecta un repositorio público o carga un ZIP de código para obtener esta distribución.</p></div>'}</div><div class="ai-card"><h3>Recomendados para las instrucciones</h3>${recommended.length?'<div id="ai-recommended-chart" class="ai-chart" aria-label="Gráfico de lenguajes recomendados"></div>'+recommended.map((x,i)=>`<details class="ai-language-reason"><summary>${i+1}. ${escape(x.name)}</summary><p>${escape(x.reason)}</p>${evidence(x.evidence)||'<p class="ai-muted">Recomendación creativa sin fuente documental.</p>'}</details>`).join(''):'<div class="ai-empty"><b>Sin recomendaciones de lenguajes</b><p>Pide explícitamente lenguajes recomendados en el prompt para completar esta parte del dashboard.</p></div>'}</div></div>`;
+    renderGeneralDashboard(host);
     if(!window.echarts)return;
     if(detected.length){const chart=window.echarts.init(el('ai-detected-chart'));chart.setOption({animationDuration:450,tooltip:{trigger:'item',formatter:p=>`${escape(p.name)}<br>${Number(p.value).toLocaleString('es')} caracteres · ${p.percent.toFixed(1)}%`},legend:{type:'scroll',bottom:0},series:[{type:'pie',radius:['40%','67%'],center:['50%','43%'],avoidLabelOverlap:true,itemStyle:{borderColor:'#fff',borderWidth:3},label:{formatter:'{b}\n{d}%'},data:detected.map(x=>({name:x.name,value:x.characters}))}]});languageCharts.push(chart);}
     if(recommended.length){const chart=window.echarts.init(el('ai-recommended-chart'));const ordered=[...recommended].reverse();chart.setOption({animationDuration:450,grid:{left:85,right:25,top:15,bottom:30},tooltip:{trigger:'axis',axisPointer:{type:'shadow'},formatter:p=>{const item=recommended[recommended.length-1-p[0].dataIndex];return `<b>${escape(item.name)}</b><br>${escape(item.reason)}`;}},xAxis:{type:'value',show:false,max:recommended.length},yAxis:{type:'category',data:ordered.map(x=>x.name),axisTick:{show:false},axisLine:{show:false}},series:[{type:'bar',data:ordered.map((_,i)=>i+1),barMaxWidth:24,itemStyle:{color:'#267454',borderRadius:[0,5,5,0]},label:{show:true,position:'right',formatter:p=>`Prioridad ${recommended.length-p.dataIndex}`}}]});languageCharts.push(chart);}
@@ -120,7 +139,8 @@
   window.addEventListener('domi:cloud-state',()=>{if(busy){cloudReload=true;return;}loadProject();});
   window.addEventListener('online',()=>{if(busy){cloudReload=true;return;}loadProject();});
   loadProject();
-  el('ai-close').onclick=()=>{languageCharts.forEach(chart=>chart.dispose());languageCharts=[];dialog.close();};
+  el('ai-canvas-insights').onclick=()=>addInsightCards();
+  el('ai-close').onclick=()=>{if(generalPreview)window.DomiCards.render(generalPreview,[]);languageCharts.forEach(chart=>chart.dispose());languageCharts=[];dialog.close();};
   window.addEventListener('resize',()=>languageCharts.forEach(chart=>chart.resize()));
   el('ai-upload').onclick=()=>el('ai-file').click();
   el('ai-retry-upload').onclick=()=>{if(editor.projectId()!==pendingProject)return status('Selecciona el proyecto donde comenzaste la carga para reintentar.',true);uploadFiles(pendingFiles);};
@@ -150,7 +170,10 @@
   el('ai-provider').onchange=()=>{state.provider=el('ai-provider').value;save().catch(e=>status(e.message,true));render();};
   el('ai-prompt').onchange=()=>{state.prompt=el('ai-prompt').value;save().catch(e=>status(e.message,true));};
   async function openDraft(){
-    const map=core.toMap(state.draft);window.SchemaModel.validate(map);await save();
+    const map=core.toMap(state.draft);
+    const right=Math.max(0,...map.entities.map(n=>n.x+238),...(map.groups||[]).map(g=>g.x+g.w));
+    map.cards=window.DomiInsights.build(state).map((c,i)=>({...c,id:window.SchemaModel.uid(),x:right+60+i*480,y:60}));
+    window.SchemaModel.validate(map);await save();
     const next=editor.importDraft(map);await sync.save(next,ownerId,state);projectId=next;
   }
   el('ai-generate-button').onclick=()=>run('Generando esquema… puede tardar hasta un minuto.',async()=>{

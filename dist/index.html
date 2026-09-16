@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="./ai-inline.css">
   <link rel="stylesheet" href="./dashboard.css">
   <link rel="stylesheet" href="./share.css">
+  <link rel="stylesheet" href="./canvas-cards.css">
 </head>
 <body data-accent="forest">
   <header class="app-header">
@@ -34,7 +35,7 @@
       <div class="toolbar"><div class="toolbar-left"><button id="toggle-modules" class="icon-button" title="Módulos" aria-label="Mostrar módulos">☰</button><div class="segmented"><button data-mode="overview" data-t="overview">Resumen</button><button data-mode="entities" class="active" data-t="entities">Entidades</button></div><div class="search-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6.5"/><path d="m15 15 5 5"/></svg><input id="schema-search" type="search" placeholder="Buscar entidad o campo…" aria-label="Buscar entidad o campo"><kbd>/</kbd></div></div><div class="toolbar-right"><label class="toggle"><input id="columns-toggle" type="checkbox" checked><span data-t="fields">Campos</span></label><label class="toggle"><input id="edges-toggle" type="checkbox" checked><span data-t="relationships">Relaciones</span></label><span class="separator"></span><button id="undo" class="icon-button" title="Deshacer (Ctrl+Z)" aria-label="Deshacer">↶</button><button id="redo" class="icon-button" title="Rehacer (Ctrl+Shift+Z)" aria-label="Rehacer">↷</button><button id="toggle-inspector" class="icon-button" title="Detalles" aria-label="Mostrar detalles">⊞</button></div></div>
       <div id="summary-strip" class="summary-strip"></div>
       <div id="canvas-container" class="canvas-container" tabindex="0" aria-label="Lienzo del mapa. Doble clic para crear un nodo.">
-        <div id="world" class="world"><div id="groups"></div><svg id="connections" class="connections" aria-label="Relaciones del mapa"><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="context-stroke" stroke-width="1.5"/></marker></defs><g id="edge-layer"></g><path id="draft-edge" class="draft-edge" hidden/></svg><div id="nodes"></div></div>
+        <div id="world" class="world"><div id="groups"></div><svg id="connections" class="connections" aria-label="Relaciones del mapa"><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="context-stroke" stroke-width="1.5"/></marker></defs><g id="edge-layer"></g><path id="draft-edge" class="draft-edge" hidden/></svg><div id="nodes"></div><div id="canvas-cards"></div></div>
         <div id="empty-state" class="empty-state" hidden><div class="empty-icon">＋</div><h2 data-t="emptyTitle">Todo empieza con un nodo</h2><p data-t="emptyBody">Crea tu primera entidad o paso del workflow.</p><button id="empty-add" class="primary" data-t="newNode">Nuevo nodo</button></div>
         <div class="canvas-bottom"><div class="canvas-hint" id="canvas-hint"></div><div class="zoom-controls"><button id="zoom-out" aria-label="Alejar">−</button><span id="zoom-level">100%</span><button id="zoom-in" aria-label="Acercar">+</button><span class="separator"></span><button id="fit-view" data-t="fit">Ajustar</button></div></div>
         <div id="tour-card" class="tour-card" hidden><div class="tour-top"><span id="tour-step" class="eyebrow"></span><button id="close-tour" class="icon-button" aria-label="Cerrar guía">×</button></div><div class="tour-progress"><i id="tour-progress"></i></div><h3 id="tour-title"></h3><p id="tour-body"></p><div class="tour-actions"><button id="tour-previous" class="quiet" data-t="previous">Anterior</button><button id="tour-next" class="primary" data-t="next">Siguiente</button></div></div>
@@ -50,11 +51,13 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
   <script src="./supabase-config.js"></script>
   <script src="./model.js"></script>
+  <script src="./vendor/echarts.min.js"></script>
+  <script src="./canvas-cards.js"></script>
+  <script src="./insights.js"></script>
   <script src="./app.js"></script>
   <script src="./cloud.js"></script>
   <script src="./share-client.js"></script>
   <script src="./ai-core.js"></script>
-  <script src="./vendor/echarts.min.js"></script>
   <script src="./ai-workflow.js"></script>
   <script src="./ai-client.js"></script>
   <script src="./ai-sync.js"></script>
